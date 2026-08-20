@@ -1,0 +1,62 @@
+[
+  {
+    "id": "pen_holder_low",
+    "family": "pen_holder",
+    "level": "low",
+    "raw_prompt": "Make me a pen holder for my desk.",
+    "ground_truth": {
+      "prompt": "Design a cylindrical desktop pen/pencil holder: 65 mm outer diameter x 95 mm tall, with 3 mm walls and a 3 mm solid flat base. Fully open top, no lid. Single watertight FDM-printable solid — no drainage or mounting holes needed. Print base-down with the open top facing up; no supports required.",
+      "object_class": "decorative",
+      "target_dims": {"height": 95, "diameter": 65, "thickness": 3},
+      "features": [],
+      "process_notes": [
+        "3 mm wall thickness and matching 3 mm base thickness balance rigidity, stability, and print time for a small FDM part.",
+        "Fully open top with no lid, for easy insertion/removal of pens and pencils.",
+        "No drainage or mounting holes: unlike a planter this holds dry items only and is a free-standing desk object, not wall-mounted.",
+        "Single watertight solid (cylindrical wall + flat base) suitable for direct slicing; genus-0 mesh with no through-holes.",
+        "Inner diameter of roughly 59 mm (outer 65 mm minus 2x3 mm walls) comfortably fits several standard pens/pencils (8-10 mm diameter each) upright without crowding.",
+        "Print oriented base-down with the open top facing up; the constant circular cross-section and vertical walls need no supports."
+      ]
+    }
+  },
+  {
+    "id": "pen_holder_medium",
+    "family": "pen_holder",
+    "level": "medium",
+    "raw_prompt": "Design a small desk pen holder — an open-top cylindrical cup, about the size of a coffee mug, that holds a handful of pens and pencils upright without tipping over.",
+    "ground_truth": {
+      "prompt": "Design a cylindrical desktop pen/pencil holder: 65 mm outer diameter x 95 mm tall, with 3 mm walls and a 3 mm solid flat base. Fully open top, no lid. Single watertight FDM-printable solid — no drainage or mounting holes needed. Print base-down with the open top facing up; no supports required.",
+      "object_class": "decorative",
+      "target_dims": {"height": 95, "diameter": 65, "thickness": 3},
+      "features": [],
+      "process_notes": [
+        "3 mm wall thickness and matching 3 mm base thickness balance rigidity, stability, and print time for a small FDM part.",
+        "Fully open top with no lid, for easy insertion/removal of pens and pencils.",
+        "No drainage or mounting holes: unlike a planter this holds dry items only and is a free-standing desk object, not wall-mounted.",
+        "Single watertight solid (cylindrical wall + flat base) suitable for direct slicing; genus-0 mesh with no through-holes.",
+        "Inner diameter of roughly 59 mm (outer 65 mm minus 2x3 mm walls) comfortably fits several standard pens/pencils (8-10 mm diameter each) upright without crowding.",
+        "Print oriented base-down with the open top facing up; the constant circular cross-section and vertical walls need no supports."
+      ]
+    }
+  },
+  {
+    "id": "pen_holder_high",
+    "family": "pen_holder",
+    "level": "high",
+    "raw_prompt": "Design a cylindrical desktop pen/pencil holder: 65 mm outer diameter x 95 mm tall, with 3 mm walls and a 3 mm solid flat base. Fully open top, no lid. Single watertight FDM-printable solid — no drainage or mounting holes needed. Print base-down with the open top facing up; no supports required.",
+    "ground_truth": {
+      "prompt": "Design a cylindrical desktop pen/pencil holder: 65 mm outer diameter x 95 mm tall, with 3 mm walls and a 3 mm solid flat base. Fully open top, no lid. Single watertight FDM-printable solid — no drainage or mounting holes needed. Print base-down with the open top facing up; no supports required.",
+      "object_class": "decorative",
+      "target_dims": {"height": 95, "diameter": 65, "thickness": 3},
+      "features": [],
+      "process_notes": [
+        "3 mm wall thickness and matching 3 mm base thickness balance rigidity, stability, and print time for a small FDM part.",
+        "Fully open top with no lid, for easy insertion/removal of pens and pencils.",
+        "No drainage or mounting holes: unlike a planter this holds dry items only and is a free-standing desk object, not wall-mounted.",
+        "Single watertight solid (cylindrical wall + flat base) suitable for direct slicing; genus-0 mesh with no through-holes.",
+        "Inner diameter of roughly 59 mm (outer 65 mm minus 2x3 mm walls) comfortably fits several standard pens/pencils (8-10 mm diameter each) upright without crowding.",
+        "Print oriented base-down with the open top facing up; the constant circular cross-section and vertical walls need no supports."
+      ]
+    }
+  }
+]

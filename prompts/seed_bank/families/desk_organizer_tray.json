@@ -1,0 +1,68 @@
+[
+  {
+    "id": "desk_organizer_tray_low",
+    "family": "desk_organizer_tray",
+    "level": "low",
+    "raw_prompt": "Make me a small tray for holding paperclips and coins on my desk.",
+    "ground_truth": {
+      "prompt": "Design a small rectangular desk organizer tray with outer dimensions 100mm (width) x 70mm (depth) x 22mm (height). Use a uniform 2mm wall thickness for the floor and the four outer walls. Add one internal divider wall, also 2mm thick and the same height as the outer walls, running the full interior depth (66mm) and positioned so it splits the interior into two open-top compartments: a larger one about 60mm wide x 66mm deep for paperclips, and a smaller one about 34mm wide x 66mm deep for coins. Round all internal corners and the top edges of the walls and divider with a 1mm fillet. The top must be fully open (no lid). The part should be a single watertight solid, printable in FDM with no supports needed, printed with its flat bottom on the print bed and the open top facing up.",
+      "object_class": "decorative",
+      "target_dims": {"width": 100, "depth": 70, "height": 22, "thickness": 2},
+      "features": [
+        {"kind": "divider_wall", "size": 2, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Single watertight solid shelled from a 100x70x22mm outer block: 2mm floor and 2mm outer side walls, open top (no lid).",
+        "One internal divider wall, 2mm thick and full wall height (22mm), spans the full interior depth (~66mm) and sits along the width axis so it splits the interior into two compartments: roughly 60mm-wide (paperclips) and roughly 34mm-wide (coins), consistent with 2(wall)+60(compartment)+2(divider)+34(compartment)+2(wall)=100mm.",
+        "1mm fillets on internal corners and top wall/divider edges for comfortable handling and easier cleaning; purely cosmetic, does not affect topology checks.",
+        "No through-holes, drainage holes, or mounting holes — this is a dry-goods desk tray, not a planter or bracket, so no hole features should be present or checked.",
+        "Minimum 2mm wall/floor/divider thickness gives good FDM rigidity while staying well clear of ~15% dimensional tolerance issues.",
+        "Print orientation: flat bottom on the bed, open top facing up; entirely flat-bottomed geometry with no overhangs, so no supports are needed."
+      ]
+    }
+  },
+  {
+    "id": "desk_organizer_tray_medium",
+    "family": "desk_organizer_tray",
+    "level": "medium",
+    "raw_prompt": "Design a small rectangular desk organizer tray, roughly the size of a deck of cards, with an open top for holding paperclips and coins. Add an internal divider wall so the paperclips and coins stay in separate compartments.",
+    "ground_truth": {
+      "prompt": "Design a small rectangular desk organizer tray with outer dimensions 100mm (width) x 70mm (depth) x 22mm (height). Use a uniform 2mm wall thickness for the floor and the four outer walls. Add one internal divider wall, also 2mm thick and the same height as the outer walls, running the full interior depth (66mm) and positioned so it splits the interior into two open-top compartments: a larger one about 60mm wide x 66mm deep for paperclips, and a smaller one about 34mm wide x 66mm deep for coins. Round all internal corners and the top edges of the walls and divider with a 1mm fillet. The top must be fully open (no lid). The part should be a single watertight solid, printable in FDM with no supports needed, printed with its flat bottom on the print bed and the open top facing up.",
+      "object_class": "decorative",
+      "target_dims": {"width": 100, "depth": 70, "height": 22, "thickness": 2},
+      "features": [
+        {"kind": "divider_wall", "size": 2, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Single watertight solid shelled from a 100x70x22mm outer block: 2mm floor and 2mm outer side walls, open top (no lid).",
+        "One internal divider wall, 2mm thick and full wall height (22mm), spans the full interior depth (~66mm) and sits along the width axis so it splits the interior into two compartments: roughly 60mm-wide (paperclips) and roughly 34mm-wide (coins), consistent with 2(wall)+60(compartment)+2(divider)+34(compartment)+2(wall)=100mm.",
+        "1mm fillets on internal corners and top wall/divider edges for comfortable handling and easier cleaning; purely cosmetic, does not affect topology checks.",
+        "No through-holes, drainage holes, or mounting holes — this is a dry-goods desk tray, not a planter or bracket, so no hole features should be present or checked.",
+        "Minimum 2mm wall/floor/divider thickness gives good FDM rigidity while staying well clear of ~15% dimensional tolerance issues.",
+        "Print orientation: flat bottom on the bed, open top facing up; entirely flat-bottomed geometry with no overhangs, so no supports are needed."
+      ]
+    }
+  },
+  {
+    "id": "desk_organizer_tray_high",
+    "family": "desk_organizer_tray",
+    "level": "high",
+    "raw_prompt": "Design a small rectangular desk organizer tray with outer dimensions 100mm (width) x 70mm (depth) x 22mm (height). Use a uniform 2mm wall thickness for the floor and the four outer walls. Add one internal divider wall, also 2mm thick and the same height as the outer walls, running the full interior depth (66mm) and positioned so it splits the interior into two open-top compartments: a larger one about 60mm wide x 66mm deep for paperclips, and a smaller one about 34mm wide x 66mm deep for coins. Round all internal corners and the top edges of the walls and divider with a 1mm fillet. The top must be fully open (no lid). The part should be a single watertight solid, printable in FDM with no supports needed, printed with its flat bottom on the print bed and the open top facing up.",
+    "ground_truth": {
+      "prompt": "Design a small rectangular desk organizer tray with outer dimensions 100mm (width) x 70mm (depth) x 22mm (height). Use a uniform 2mm wall thickness for the floor and the four outer walls. Add one internal divider wall, also 2mm thick and the same height as the outer walls, running the full interior depth (66mm) and positioned so it splits the interior into two open-top compartments: a larger one about 60mm wide x 66mm deep for paperclips, and a smaller one about 34mm wide x 66mm deep for coins. Round all internal corners and the top edges of the walls and divider with a 1mm fillet. The top must be fully open (no lid). The part should be a single watertight solid, printable in FDM with no supports needed, printed with its flat bottom on the print bed and the open top facing up.",
+      "object_class": "decorative",
+      "target_dims": {"width": 100, "depth": 70, "height": 22, "thickness": 2},
+      "features": [
+        {"kind": "divider_wall", "size": 2, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Single watertight solid shelled from a 100x70x22mm outer block: 2mm floor and 2mm outer side walls, open top (no lid).",
+        "One internal divider wall, 2mm thick and full wall height (22mm), spans the full interior depth (~66mm) and sits along the width axis so it splits the interior into two compartments: roughly 60mm-wide (paperclips) and roughly 34mm-wide (coins), consistent with 2(wall)+60(compartment)+2(divider)+34(compartment)+2(wall)=100mm.",
+        "1mm fillets on internal corners and top wall/divider edges for comfortable handling and easier cleaning; purely cosmetic, does not affect topology checks.",
+        "No through-holes, drainage holes, or mounting holes — this is a dry-goods desk tray, not a planter or bracket, so no hole features should be present or checked.",
+        "Minimum 2mm wall/floor/divider thickness gives good FDM rigidity while staying well clear of ~15% dimensional tolerance issues.",
+        "Print orientation: flat bottom on the bed, open top facing up; entirely flat-bottomed geometry with no overhangs, so no supports are needed."
+      ]
+    }
+  }
+]

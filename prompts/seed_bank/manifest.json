@@ -1,0 +1,35 @@
+{
+  "note": "Scoped down from the plan's aspirational '>=40 held-out seeds across >=4 families' target given real session time constraints. 21 total seeds across 7 families, each hand-authored (or, for wall_planter, taken from the pre-existing audited ladder) and adversarially reviewed for ground-truth correctness. Documented honestly rather than padded: statistical power at this N is limited and the final report says so explicitly.",
+  "families": {
+    "wall_planter": {"class": "decorative", "role": "train", "source": "audited real ladder from cadybara-kitchen/projects/wall-planter-cad-study/"},
+    "bracket": {"class": "mechanical_functional", "role": "train", "source": "authored + piloted this session"},
+    "gear": {"class": "mechanical_functional", "role": "train", "source": "authored + piloted this session"},
+    "pen_holder": {"class": "decorative", "role": "train", "source": "authored + adversarially reviewed this session"},
+    "coaster": {"class": "decorative", "role": "heldout_family", "source": "authored + adversarially reviewed this session"},
+    "desk_organizer_tray": {"class": "decorative", "role": "heldout_family", "source": "authored + adversarially reviewed this session"},
+    "enclosure": {"class": "mechanical_functional", "role": "heldout_family_primary", "source": "authored + piloted this session"}
+  },
+  "split": {
+    "train": {
+      "description": "low+medium tier seeds from train-role families, used by optimize.py's beam search",
+      "seed_ids": [
+        "wall_planter_low", "wall_planter_medium",
+        "bracket_low", "bracket_medium",
+        "gear_low", "gear_medium",
+        "pen_holder_low", "pen_holder_medium"
+      ]
+    },
+    "heldout_same_family": {
+      "description": "high tier of the same 4 train families, never seen by the optimizer, used in the final paired harness run",
+      "seed_ids": ["wall_planter_high", "bracket_high", "gear_high", "pen_holder_high"]
+    },
+    "heldout_family": {
+      "description": "3 families never touched during training at all (any tier) — the true generalization check. enclosure is the primary one per the architecture's key risk finding (mechanical/functional parts are the domain with no prior evidence for the depth-policy design); coaster and desk_organizer_tray extend the check to decorative objects the optimizer also never saw.",
+      "seed_ids": [
+        "enclosure_low", "enclosure_medium", "enclosure_high",
+        "coaster_low", "coaster_medium", "coaster_high",
+        "desk_organizer_tray_low", "desk_organizer_tray_medium", "desk_organizer_tray_high"
+      ]
+    }
+  }
+}

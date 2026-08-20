@@ -1,0 +1,80 @@
+[
+  {
+    "id": "gear_low",
+    "family": "gear",
+    "level": "low",
+    "raw_prompt": "Create a gear.",
+    "ground_truth": {
+      "prompt": "Create a gear.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "diameter": 46,
+        "depth": 8
+      },
+      "features": [
+        {
+          "kind": "gear_tooth",
+          "count": 16
+        },
+        {
+          "kind": "bore_hole",
+          "count": 1,
+          "size": 12.0,
+          "size_unit": "mm"
+        }
+      ]
+    }
+  },
+  {
+    "id": "gear_medium",
+    "family": "gear",
+    "level": "medium",
+    "raw_prompt": "Create a gear with about 16 teeth, roughly 45mm across, with a center hole for a shaft.",
+    "ground_truth": {
+      "prompt": "Create a gear with about 16 teeth, roughly 45mm across, with a center hole for a shaft.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "diameter": 46,
+        "depth": 8
+      },
+      "features": [
+        {
+          "kind": "gear_tooth",
+          "count": 16
+        },
+        {
+          "kind": "bore_hole",
+          "count": 1,
+          "size": 12.0,
+          "size_unit": "mm"
+        }
+      ]
+    }
+  },
+  {
+    "id": "gear_high",
+    "family": "gear",
+    "level": "high",
+    "raw_prompt": "Create a spur gear with exactly 16 teeth arranged evenly around a 20mm-radius base cylinder, each tooth a 3mm-radius cylindrical bump extending outward from the base circle. Gear thickness 8mm. Center bore 12mm diameter for a shaft.",
+    "ground_truth": {
+      "prompt": "Create a spur gear with exactly 16 teeth arranged evenly around a 20mm-radius base cylinder, each tooth a 3mm-radius cylindrical bump extending outward from the base circle. Gear thickness 8mm. Center bore 12mm diameter for a shaft.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "diameter": 46,
+        "depth": 8
+      },
+      "features": [
+        {
+          "kind": "gear_tooth",
+          "count": 16
+        },
+        {
+          "kind": "bore_hole",
+          "count": 1,
+          "size": 12.0,
+          "size_unit": "mm"
+        }
+      ]
+    }
+  }
+]

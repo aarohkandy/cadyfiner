@@ -1,0 +1,68 @@
+[
+  {
+    "id": "coaster_low",
+    "family": "coaster",
+    "level": "low",
+    "raw_prompt": "Make me a coaster for my drink.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable round drink coaster: 100mm outer diameter, 8mm overall thickness. Cut a centered circular well 85mm in diameter and 5mm deep into the top face, leaving a 3mm-thick solid floor and a 7.5mm-wide raised rim around the edge to contain spills. Add 1mm fillets on the top outer edge and the well's inner lip. Print flat with the well facing up, no supports needed, single watertight solid.",
+      "object_class": "decorative",
+      "target_dims": {"height": 8, "diameter": 100, "thickness": 3},
+      "features": [
+        {"kind": "recessed_well_blind", "count": 1, "size": 85, "size_unit": "mm"},
+        {"kind": "raised_rim", "size": 7.5, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Base solid: 100mm diameter x 8mm tall cylinder, single watertight solid.",
+        "Recessed well is a blind (non-through) pocket cut into the top face: 85mm diameter x 5mm deep, centered, leaving a 3mm-thick solid floor beneath it for adequate FDM layer strength.",
+        "3mm floor thickness and 7.5mm-wide outer rim (the ring left between the well and the outer edge) both print solidly without thin-wall warping.",
+        "1mm fillets on the top outer edge and the well's inner lip for comfortable handling and to avoid sharp printed edges.",
+        "Print orientation: flat, well-face up; no supports needed since the recess opens upward and the outer wall is vertical."
+      ]
+    }
+  },
+  {
+    "id": "coaster_medium",
+    "family": "coaster",
+    "level": "medium",
+    "raw_prompt": "Design a round drink coaster with a shallow recessed well in the middle to catch condensation from a cold glass or mug — about the size of a coffee mug's base.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable round drink coaster: 100mm outer diameter, 8mm overall thickness. Cut a centered circular well 85mm in diameter and 5mm deep into the top face, leaving a 3mm-thick solid floor and a 7.5mm-wide raised rim around the edge to contain spills. Add 1mm fillets on the top outer edge and the well's inner lip. Print flat with the well facing up, no supports needed, single watertight solid.",
+      "object_class": "decorative",
+      "target_dims": {"height": 8, "diameter": 100, "thickness": 3},
+      "features": [
+        {"kind": "recessed_well_blind", "count": 1, "size": 85, "size_unit": "mm"},
+        {"kind": "raised_rim", "size": 7.5, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Base solid: 100mm diameter x 8mm tall cylinder, single watertight solid.",
+        "Recessed well is a blind (non-through) pocket cut into the top face: 85mm diameter x 5mm deep, centered, leaving a 3mm-thick solid floor beneath it for adequate FDM layer strength.",
+        "3mm floor thickness and 7.5mm-wide outer rim (the ring left between the well and the outer edge) both print solidly without thin-wall warping.",
+        "1mm fillets on the top outer edge and the well's inner lip for comfortable handling and to avoid sharp printed edges.",
+        "Print orientation: flat, well-face up; no supports needed since the recess opens upward and the outer wall is vertical."
+      ]
+    }
+  },
+  {
+    "id": "coaster_high",
+    "family": "coaster",
+    "level": "high",
+    "raw_prompt": "Design a 3D-printable round drink coaster: 100mm outer diameter, 8mm overall thickness. Cut a centered circular well 85mm in diameter and 5mm deep into the top face, leaving a 3mm-thick solid floor and a 7.5mm-wide raised rim around the edge to contain spills. Add 1mm fillets on the top outer edge and the well's inner lip. Print flat with the well facing up, no supports needed, single watertight solid.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable round drink coaster: 100mm outer diameter, 8mm overall thickness. Cut a centered circular well 85mm in diameter and 5mm deep into the top face, leaving a 3mm-thick solid floor and a 7.5mm-wide raised rim around the edge to contain spills. Add 1mm fillets on the top outer edge and the well's inner lip. Print flat with the well facing up, no supports needed, single watertight solid.",
+      "object_class": "decorative",
+      "target_dims": {"height": 8, "diameter": 100, "thickness": 3},
+      "features": [
+        {"kind": "recessed_well_blind", "count": 1, "size": 85, "size_unit": "mm"},
+        {"kind": "raised_rim", "size": 7.5, "size_unit": "mm"}
+      ],
+      "process_notes": [
+        "Base solid: 100mm diameter x 8mm tall cylinder, single watertight solid.",
+        "Recessed well is a blind (non-through) pocket cut into the top face: 85mm diameter x 5mm deep, centered, leaving a 3mm-thick solid floor beneath it for adequate FDM layer strength.",
+        "3mm floor thickness and 7.5mm-wide outer rim (the ring left between the well and the outer edge) both print solidly without thin-wall warping.",
+        "1mm fillets on the top outer edge and the well's inner lip for comfortable handling and to avoid sharp printed edges.",
+        "Print orientation: flat, well-face up; no supports needed since the recess opens upward and the outer wall is vertical."
+      ]
+    }
+  }
+]

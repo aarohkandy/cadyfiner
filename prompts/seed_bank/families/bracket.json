@@ -1,0 +1,74 @@
+[
+  {
+    "id": "bracket_low",
+    "family": "bracket",
+    "level": "low",
+    "raw_prompt": "Create a mounting bracket with holes.",
+    "ground_truth": {
+      "prompt": "Create a mounting bracket with holes.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 60,
+        "height": 60,
+        "thickness": 4
+      },
+      "features": [
+        {
+          "kind": "mounting_hole",
+          "count": 4,
+          "size": 5.0,
+          "size_unit": "mm"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bracket_medium",
+    "family": "bracket",
+    "level": "medium",
+    "raw_prompt": "Create an L-shaped mounting bracket, roughly 60mm by 60mm, 4mm thick, with mounting holes.",
+    "ground_truth": {
+      "prompt": "Create an L-shaped mounting bracket, roughly 60mm by 60mm, 4mm thick, with mounting holes.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 60,
+        "height": 60,
+        "thickness": 4
+      },
+      "features": [
+        {
+          "kind": "mounting_hole",
+          "count": 4,
+          "size": 5.0,
+          "size_unit": "mm"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bracket_high",
+    "family": "bracket",
+    "level": "high",
+    "raw_prompt": "Create an L-shaped mounting bracket. Two flanges, each 60mm by 40mm, joined at a 90-degree angle, material thickness 4mm. Each flange has two 5mm diameter mounting holes, positioned 10mm in from each edge. Add a 3mm fillet on the inside corner.",
+    "ground_truth": {
+      "prompt": "Create an L-shaped mounting bracket. Two flanges, each 60mm by 40mm, joined at a 90-degree angle, material thickness 4mm. Each flange has two 5mm diameter mounting holes, positioned 10mm in from each edge. Add a 3mm fillet on the inside corner.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 60,
+        "height": 60,
+        "thickness": 4
+      },
+      "features": [
+        {
+          "kind": "mounting_hole",
+          "count": 4,
+          "size": 5.0,
+          "size_unit": "mm"
+        }
+      ],
+      "process_notes": [
+        "3mm fillet on inside corner"
+      ]
+    }
+  }
+]

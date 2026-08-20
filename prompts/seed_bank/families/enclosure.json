@@ -1,0 +1,77 @@
+[
+  {
+    "id": "enclosure_low",
+    "family": "enclosure",
+    "level": "low",
+    "raw_prompt": "Create an open-top electronics enclosure.",
+    "ground_truth": {
+      "prompt": "Create an open-top electronics enclosure.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 80,
+        "depth": 60,
+        "height": 30,
+        "thickness": 2
+      },
+      "features": [
+        {
+          "kind": "corner_standoff",
+          "count": 4,
+          "notes": [
+            "not independently verifiable from mesh with current checks; recorded for prompt fidelity only"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enclosure_medium",
+    "family": "enclosure",
+    "level": "medium",
+    "raw_prompt": "Create a rectangular electronics enclosure, about 80mm by 60mm by 30mm, with 2mm walls and an open top.",
+    "ground_truth": {
+      "prompt": "Create a rectangular electronics enclosure, about 80mm by 60mm by 30mm, with 2mm walls and an open top.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 80,
+        "depth": 60,
+        "height": 30,
+        "thickness": 2
+      },
+      "features": [
+        {
+          "kind": "corner_standoff",
+          "count": 4,
+          "notes": [
+            "not independently verifiable from mesh with current checks; recorded for prompt fidelity only"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "enclosure_high",
+    "family": "enclosure",
+    "level": "high",
+    "raw_prompt": "Create a rectangular electronics enclosure. External dimensions 80mm by 60mm by 30mm, uniform wall thickness 2mm, open top. Four cylindrical mounting standoffs in the corners, 6mm outer diameter, 3mm bore, 25mm tall, inset 5mm from each corner wall.",
+    "ground_truth": {
+      "prompt": "Create a rectangular electronics enclosure. External dimensions 80mm by 60mm by 30mm, uniform wall thickness 2mm, open top. Four cylindrical mounting standoffs in the corners, 6mm outer diameter, 3mm bore, 25mm tall, inset 5mm from each corner wall.",
+      "object_class": "mechanical_functional",
+      "target_dims": {
+        "width": 80,
+        "depth": 60,
+        "height": 30,
+        "thickness": 2
+      },
+      "features": [
+        {
+          "kind": "corner_standoff",
+          "count": 4,
+          "notes": [
+            "not independently verifiable from mesh with current checks; recorded for prompt fidelity only"
+          ]
+        }
+      ]
+    }
+  }
+]

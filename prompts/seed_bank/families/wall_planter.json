@@ -1,0 +1,62 @@
+[
+  {
+    "id": "wall_planter_low",
+    "family": "wall_planter",
+    "level": "low",
+    "raw_prompt": "Make me a planter I can put on my wall.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed.",
+      "object_class": "decorative",
+      "target_dims": {"height": 90, "diameter": 80, "thickness": 3},
+      "features": [
+        {"kind": "drainage_hole", "count": 4, "size": 3.0, "size_unit": "mm"},
+        {"kind": "mounting_slot_blind", "count": 1}
+      ],
+      "process_notes": [
+        "Source: this is the exact, audited wall_planter prompt ladder from cadybara-kitchen/projects/wall-planter-cad-study/ (level 10, 'Fully Specified'), the only family in this project with a preserved, human-authored ground truth ladder.",
+        "Mounting slot is a keyhole cut into the back panel's face — not a clean through-hole for genus purposes on a normal print orientation reading, kept 'blind' in kind naming to avoid an unreliable through-hole count claim; recorded for prompt fidelity.",
+        "Drainage holes ARE clean through-holes (bottom face to cylinder interior) and are checked via the genus-based through-hole estimator."
+      ]
+    }
+  },
+  {
+    "id": "wall_planter_medium",
+    "family": "wall_planter",
+    "level": "medium",
+    "raw_prompt": "Design a cylindrical wall-mounted planter roughly 90 mm tall and 80 mm in diameter, open at the top, with a flat back that hangs against the wall using a single screw through a mounting hole.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed.",
+      "object_class": "decorative",
+      "target_dims": {"height": 90, "diameter": 80, "thickness": 3},
+      "features": [
+        {"kind": "drainage_hole", "count": 4, "size": 3.0, "size_unit": "mm"},
+        {"kind": "mounting_slot_blind", "count": 1}
+      ],
+      "process_notes": [
+        "Source: this is the exact, audited wall_planter prompt ladder from cadybara-kitchen/projects/wall-planter-cad-study/ (level 10, 'Fully Specified'), the only family in this project with a preserved, human-authored ground truth ladder.",
+        "Mounting slot is a keyhole cut into the back panel's face — not a clean through-hole for genus purposes on a normal print orientation reading, kept 'blind' in kind naming to avoid an unreliable through-hole count claim; recorded for prompt fidelity.",
+        "Drainage holes ARE clean through-holes (bottom face to cylinder interior) and are checked via the genus-based through-hole estimator."
+      ]
+    }
+  },
+  {
+    "id": "wall_planter_high",
+    "family": "wall_planter",
+    "level": "high",
+    "raw_prompt": "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally, with its top edge 15 mm below the top of the back panel: an 8 mm diameter circular opening with a 4 mm wide x 10 mm tall rectangular slot extending downward from the circle's center, sized to accept a #8 pan-head screw. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed.",
+    "ground_truth": {
+      "prompt": "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed.",
+      "object_class": "decorative",
+      "target_dims": {"height": 90, "diameter": 80, "thickness": 3},
+      "features": [
+        {"kind": "drainage_hole", "count": 4, "size": 3.0, "size_unit": "mm"},
+        {"kind": "mounting_slot_blind", "count": 1}
+      ],
+      "process_notes": [
+        "Source: this is the exact, audited wall_planter prompt ladder from cadybara-kitchen/projects/wall-planter-cad-study/ (level 10, 'Fully Specified'), the only family in this project with a preserved, human-authored ground truth ladder.",
+        "Mounting slot is a keyhole cut into the back panel's face — not a clean through-hole for genus purposes on a normal print orientation reading, kept 'blind' in kind naming to avoid an unreliable through-hole count claim; recorded for prompt fidelity.",
+        "Drainage holes ARE clean through-holes (bottom face to cylinder interior) and are checked via the genus-based through-hole estimator."
+      ]
+    }
+  }
+]
