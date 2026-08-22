@@ -28,7 +28,6 @@ import base64
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import httpx
 

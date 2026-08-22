@@ -44,15 +44,51 @@ def load_seeds() -> list[SeedCase]:
     return seeds
 
 
-def main() -> None:
-    seeds = load_seeds()
-    print(f"Loaded {len(seeds)} seeds for roles {ROLES}, model={MODEL}")
+def _already_completed(out_dir: Path) -> set[str]:
+    """base_seed_ids with a persisted result from a prior (possibly interrupted) run."""
 
+    results_path = out_dir / "paired_results.json"
+    if not results_path.exists():
+        return set()
+    try:
+        prior = json.loads(results_path.read_text())
+    except json.JSONDecodeError:
+        return set()
+    # Old-format results (from before base_seed_id existed) fall back to stripping "_repN".
+    return {r.get("base_seed_id") or r["seed_id"].rsplit("_rep", 1)[0] for r in prior}
+
+
+def main() -> None:
+    out_dir = Path("workspace/harness") / MODEL.replace(":", "_")
+    seeds = load_seeds()
+    done = _already_completed(out_dir)
+    if done:
+        print(f"Resuming: {len(done)} seed(s) already completed in a prior run, skipping them: {sorted(done)}")
+        seeds = [s for s in seeds if s.id not in done]
+    print(f"Running {len(seeds)} seeds for roles {ROLES}, model={MODEL}")
+
+    # Tighter timeout/retries than the first attempt: that run hung for hours on what should have
+    # been a bounded-by-timeout wait, well beyond any retry-math worst case — reducing both the
+    # per-call timeout and local_ollama's own retry count bounds a stuck call much more tightly so
+    # a genuinely hung server request can't silently consume the whole remaining run.
     results = run_paired_evaluation(
         seeds, generate, reps=1,
-        out_root=Path("workspace/harness") / MODEL.replace(":", "_"),
-        generate_kwargs={"model": MODEL, "temperature": 0.5, "max_tokens": 2500, "timeout": 240},
+        out_root=out_dir,
+        generate_kwargs={"model": MODEL, "temperature": 0.5, "max_tokens": 2000, "timeout": 90, "max_retries": 1},
     )
+
+    # Merge with whatever a prior interrupted run already persisted, so the final report covers
+    # every seed run across both invocations, not just this process's own results list.
+    if done:
+        prior = json.loads((out_dir / "paired_results.json").read_text()) if (out_dir / "paired_results.json").exists() else []
+        # run_paired_evaluation already rewrote paired_results.json with just THIS run's results;
+        # reconstruct the full set from the prior snapshot captured before this run started plus
+        # what this run just produced.
+        from cadyfiner.harness import PairedResult
+        prior_before_this_run = [PairedResult(**{k: v for k, v in r.items() if k in PairedResult.__dataclass_fields__}) for r in prior if (r.get("base_seed_id") or r["seed_id"].rsplit("_rep", 1)[0]) in done]
+        results = prior_before_this_run + results
+        (out_dir / "paired_results.json").write_text(json.dumps([r.__dict__ for r in results], indent=2))
+
     for r in results:
         outcome = "REFINED WINS" if r.refined_pass and not r.raw_pass else \
                   "RAW WINS" if r.raw_pass and not r.refined_pass else "TIE"
