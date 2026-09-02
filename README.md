@@ -124,6 +124,12 @@ unverified until run once for real).
   disagree at small n, confirmed live). Reps are clustered by seed before
   computing significance, so replaying a small seed pool can't manufacture
   apparent significance.
+- **`cadyfiner/generators/local_trained.py`** — an alternative, optional
+  backend: two small LoRA-fine-tuned models (Qwen2.5-1.5B for Stage 2's
+  gap-filling, Qwen2.5-0.5B for the optimizer's mutation proposals),
+  specialized for exactly one job each, kept alongside — not instead of —
+  the general-purpose Ollama/frontier path. Full methodology, data
+  provenance, and honest results: [`docs/TRAINED_OPTIMIZERS.md`](docs/TRAINED_OPTIMIZERS.md).
 
 ## Why two legs, never combined into one score
 
