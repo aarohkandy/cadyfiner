@@ -26,7 +26,18 @@ from cadyfiner.refine_stage2 import fill_gaps
 from cadyfiner.spec import DesignBrief
 
 
+# Where the specialized LoRA adapters land once trained — see training/train_lora.py
+# and docs/TRAINED_OPTIMIZERS.md. Base models are matched to task complexity: Stage 2
+# needs open-ended generation competence, the (separate, optimize.py-only) policy
+# mutation-proposer's output space is a handful of fixed tags.
+_TRAINED_STAGE2_CONFIG = {"base_model": "Qwen/Qwen2.5-1.5B-Instruct", "adapter_path": "training/adapters/stage2"}
+
+
 def _get_generator(backend: str):
+    """The CAD-code-writing generator — always general-purpose. The specialized Stage-2
+    model (``local_trained``) is intentionally NOT selectable here: it was trained only to
+    produce Stage 2's structured JSON, not CadQuery source, and would not write usable code."""
+
     if backend == "local":
         from cadyfiner.generators.local_ollama import generate
         return generate
@@ -36,27 +47,46 @@ def _get_generator(backend: str):
     raise ValueError(f"unknown backend: {backend!r} (expected 'local' or 'frontier')")
 
 
+def _get_stage2_generator(backend: str):
+    """The gap-filling generator for Stage 2 specifically — this one DOES accept
+    ``local_trained``, since that's exactly the task it was fine-tuned for."""
+
+    if backend == "local_trained":
+        from cadyfiner.generators.local_trained import generate
+        return generate
+    return _get_generator(backend)
+
+
 def _add_backend_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--backend", choices=["local", "frontier"], default="local")
+    p.add_argument("--backend", choices=["local", "frontier"], default="local", help="Generator for CadQuery code.")
+    p.add_argument(
+        "--stage2-backend", choices=["local", "frontier", "local_trained"], default=None,
+        help="Generator for the prompt-refining Stage 2 step (default: same as --backend). "
+             "'local_trained' uses the specialized fine-tuned model instead of a general-purpose one.",
+    )
     p.add_argument("--model", default=None, help="Override the default model for the chosen backend.")
     p.add_argument("--temperature", type=float, default=0.5)
     p.add_argument("--max-tokens", type=int, default=2500)
     p.add_argument("--timeout", type=float, default=240.0)
 
 
-def _generate_kwargs(args) -> dict:
+def _generate_kwargs(args, backend: str | None = None) -> dict:
+    backend = backend or args.backend
+    if backend == "local_trained":
+        return {**_TRAINED_STAGE2_CONFIG, "temperature": args.temperature, "max_tokens": args.max_tokens}
     kwargs = {"temperature": args.temperature, "max_tokens": args.max_tokens, "timeout": args.timeout}
     if args.model:
         kwargs["model"] = args.model
-    elif args.backend == "local":
+    elif backend == "local":
         kwargs["model"] = "gemma4:e4b"
     return kwargs
 
 
 def cmd_refine(args) -> None:
-    generate = _get_generator(args.backend)
+    stage2_backend = args.stage2_backend or args.backend
+    generate = _get_stage2_generator(stage2_backend)
     extraction = extract(args.prompt)
-    filled = fill_gaps(extraction, generate, **_generate_kwargs(args))
+    filled = fill_gaps(extraction, generate, **_generate_kwargs(args, stage2_backend))
 
     if args.json:
         print(json.dumps(filled.spec.model_dump(exclude_none=True), indent=2))
@@ -76,8 +106,10 @@ def cmd_generate(args) -> None:
     generate = _get_generator(args.backend)
     prompt_text = args.prompt
     if args.refine:
+        stage2_backend = args.stage2_backend or args.backend
+        stage2_generate = _get_stage2_generator(stage2_backend)
         extraction = extract(args.prompt)
-        filled = fill_gaps(extraction, generate, **_generate_kwargs(args))
+        filled = fill_gaps(extraction, stage2_generate, **_generate_kwargs(args, stage2_backend))
         prompt_text = filled.spec.refined_prompt or args.prompt
         print(f"Refined prompt used for generation:\n{prompt_text}\n", file=sys.stderr)
 
