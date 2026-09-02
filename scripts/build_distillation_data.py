@@ -41,6 +41,8 @@ TEACHER_MODEL = sys.argv[1] if len(sys.argv) > 1 else "gemma4:e4b"
 PROMPTS_PATH = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("workspace/synthetic_prompts.json")
 OUT_PATH = Path(sys.argv[3]) if len(sys.argv) > 3 else Path("workspace/distillation_data.jsonl")
 MAX_PROMPTS = int(sys.argv[4]) if len(sys.argv) > 4 else 999
+START_INDEX = int(sys.argv[5]) if len(sys.argv) > 5 else 0
+BASE_URL = sys.argv[6] if len(sys.argv) > 6 else "http://localhost:11434"
 
 _STAGE_ORDER = ["execute", "mesh_validity", "spec_conformance", "manufacturability"]
 
@@ -53,15 +55,18 @@ def _stage_rank(leg1_result) -> int:
 
 
 def main() -> None:
-    prompts = json.loads(PROMPTS_PATH.read_text())["prompts"][:MAX_PROMPTS]
-    kwargs = {"model": TEACHER_MODEL, "temperature": 0.5, "max_tokens": 2000, "timeout": 90, "max_retries": 1}
+    prompts = json.loads(PROMPTS_PATH.read_text())["prompts"][START_INDEX:START_INDEX + MAX_PROMPTS]
+    kwargs = {
+        "model": TEACHER_MODEL, "temperature": 0.5, "max_tokens": 2000, "timeout": 90,
+        "max_retries": 1, "base_url": BASE_URL,
+    }
 
     accepted, rejected, errors = 0, 0, 0
     out_f = open(OUT_PATH, "a")
     log_path = OUT_PATH.with_suffix(".log.jsonl")
     log_f = open(log_path, "a")
 
-    for i, item in enumerate(prompts):
+    for i, item in enumerate(prompts, start=START_INDEX):
         raw_prompt = item["raw_prompt"]
         print(f"[{i+1}/{len(prompts)}] {raw_prompt[:60]!r}", flush=True)
         t0 = time.time()

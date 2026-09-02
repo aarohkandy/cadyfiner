@@ -148,8 +148,13 @@ it, a feature was never mentioned) are within the optimizer's reach. Training Mo
 recognize this distinction and output "no edit" rather than confidently guessing an irrelevant
 one is as important as training it to propose good edits when one would actually help.
 
-**[PENDING]** Final scenario count, policy-fixable/not-fixable split, and correction rate from
-verification, once the workflow completes.
+**Result**: 50 labeled scenarios survived verification (from a larger raw batch), split almost
+exactly evenly: **26 not-policy-fixable / 24 policy-fixable**, 33 mechanical_functional / 17
+decorative. **13 of 50 (26%) were corrected during the adversarial verification pass** — a real,
+non-trivial fraction, confirming the verification step earns its cost rather than rubber-
+stamping the first pass. The near-even fixable/not-fixable split is itself the headline finding
+of this section: on this project's own actual failure history, a coin flip is roughly as
+informative as the raw failure count for predicting whether the optimizer's lever even applies.
 
 ## 4. Training configuration
 
@@ -166,7 +171,29 @@ Run on homebase (`~/work/cadyfiner_train/`), resource-capped via
 user's other active services (13 Docker containers, a long-running tmux session observed at
 setup time), not a dedicated training machine, so training never claims unbounded RAM/CPU.
 
-**[PENDING]** Final training loss curves, wall-clock time, and adapter sizes.
+**Model 2 (policy mutation-proposer) — trained and evaluated.** 50 examples (43 train / 7 held-out
+eval), 4 epochs, 24 optimizer steps, **408.7s (6.8 minutes) wall-clock** on homebase. Training
+loss fell steadily (2.87 → 2.55 → 2.26 → 2.15 across epochs 1-4); more importantly, **held-out
+eval accuracy rose from 0.556 (epoch 1) to 0.678 (epoch 4)** and held-out eval loss *fell*
+throughout (2.64 → 2.17 → 1.87 → 1.70) — improving on data it never trained on, not just
+memorizing, with no sign of the eval curve turning back upward (the standard overfitting
+signature). Adapter: **8.68MB** (`training/adapters/policy/`, committed to this repo — small
+enough to ship directly, no external hosting needed).
+
+Real-world timing note: this run was slowed by a self-inflicted mistake — an earlier one-off
+benchmark call to a large (25.8B) model on the same shared homebase box left it loaded in memory
+(Ollama's keep-alive behavior), competing with this training job for CPU until it timed out and
+unloaded on its own. Worth naming plainly rather than omitting: it's a real reminder to check for
+lingering loaded models before launching a resource-sensitive job on shared infrastructure.
+
+**Model 1 (Stage-2 gap-filler) — data generation in progress; training pending.** The local
+Ollama-based generation pipeline ran into unrelated, real resource contention (the same Mac was
+running other demanding foreground software), which was correctly diagnosed rather than treated
+as a code bug — a trivial 2-token completion measured 30 real seconds under that load, versus
+normal sub-2-second latency. Rather than wait it out, generation was redirected over an SSH
+tunnel to homebase's own larger, already-provisioned Ollama service (25.8B `ai:fast`), which is
+not competing with anything on the local machine. This section will be updated with final
+accepted/rejected counts and training results once that run completes.
 
 ## 5. Evaluation: how we'll know if either model actually helps
 
@@ -180,7 +207,30 @@ same paired, statistically-tested methodology already built:
   how many rounds it takes to reach a given train-set pass rate, and whether the final policy
   it converges to differs from what the general-purpose model converges to.
 
-**[PENDING]** Results once both models are trained and both re-evaluations complete.
+**Model 2 preliminary check (not yet the full end-to-end comparison above — see honest caveat
+below):** ran the trained model on its own 7-example held-out split (`training/
+eval_policy_model.py`). Results, reported exactly as measured:
+
+| metric | result |
+|---|---|
+| valid JSON output | 7/7 |
+| output uses a real category tag or null | 6/7 |
+| agrees with the expert label on fixable-vs-not | 4/7 |
+
+**Read this honestly, not optimistically.** This tiny eval split happened to be skewed 6-of-7
+"not fixable" — a trivial model that always answers "no edit" would score 6/7 = 86% on fixable-
+vs-not, which *beats* the trained model's actual 4/7 = 57% on this same slice. n=7 is far too
+small to conclude the model is worse than a constant baseline (binomial noise alone explains a
+few flips easily at this size), but it's equally far too small to claim a win, and claiming one
+here would be exactly the kind of overclaim this project's own methodology exists to catch. What
+the model clearly did learn: syntactically valid JSON every time, and the right output *shape*
+(object_class + add/remove) even when the specific tag choice was wrong. What it has NOT yet
+demonstrated: outperforming the general-purpose model, or even a naive baseline, on the
+fixable/not-fixable judgment specifically. The real test is the one described above this
+table — inside `optimize.py`, on fresh diagnostics, compared against the general-purpose
+model's own mutation proposals — and that comparison has not been run yet.
+
+**[PENDING]** Model 1's training + both models' full end-to-end re-evaluations.
 
 ## 6. Known limitations (stated up front, not discovered later)
 
