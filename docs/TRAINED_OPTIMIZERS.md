@@ -187,13 +187,29 @@ unloaded on its own. Worth naming plainly rather than omitting: it's a real remi
 lingering loaded models before launching a resource-sensitive job on shared infrastructure.
 
 **Model 1 (Stage-2 gap-filler) — data generation in progress; training pending.** The local
-Ollama-based generation pipeline ran into unrelated, real resource contention (the same Mac was
-running other demanding foreground software), which was correctly diagnosed rather than treated
-as a code bug — a trivial 2-token completion measured 30 real seconds under that load, versus
-normal sub-2-second latency. Rather than wait it out, generation was redirected over an SSH
-tunnel to homebase's own larger, already-provisioned Ollama service (25.8B `ai:fast`), which is
-not competing with anything on the local machine. This section will be updated with final
-accepted/rejected counts and training results once that run completes.
+Ollama-based generation pipeline ran into real resource contention (the same Mac was running
+other demanding foreground software), correctly diagnosed rather than treated as a code bug — a
+trivial 2-token completion measured 30 real seconds under that load, versus normal sub-2-second
+latency.
+
+**A detour worth documenting, not hiding**: generation was first redirected over an SSH tunnel
+to homebase's own larger, already-provisioned Ollama service (25.8B `ai:fast`), reasoning that a
+box not competing with local foreground software would be faster. It was not — a 1-2 token
+benchmark ("say hi") looked fine (11-43s), but every real call (needing several hundred tokens
+of actual JSON/CadQuery output) hit a hard 90s timeout, three times, on every single one of 13
+consecutive prompts, all silently logged as errors rather than shown in the progress output (a
+second real bug: the error text went only to the log file, not stdout, so a naive glance at
+progress looked like slow-but-working when it was actually 100% failure). The root cause: a
+1-2 token benchmark never exercises the thing that actually matters for this workload — real
+per-token generation latency on a 25.8B-parameter model with no GPU, which is simply too slow
+for multi-hundred-token outputs regardless of contention. Lesson generalized: benchmark with a
+token count representative of the real workload, not a trivial one, and make every automated
+pipeline's error path visible in whatever gets watched for progress, not only in a side file.
+Reverted to local generation, accepting the slower-but-real pace under contention rather than a
+faster-looking path that silently produced nothing.
+
+This section will be updated with final accepted/rejected counts and training results once that
+run completes.
 
 ## 5. Evaluation: how we'll know if either model actually helps
 
