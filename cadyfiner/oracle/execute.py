@@ -171,7 +171,7 @@ def run_cadquery(
     cpu_seconds: int = 40,
     address_space_bytes: int = 4 * 1024 ** 3,
     file_size_bytes: int = 300 * 1024 ** 2,
-    max_processes: int = 32,
+    max_processes: int = 512,
     stdio_capture_bytes: int = 64 * 1024,
 ) -> ExecutionResult:
     """Execute CadQuery source in an isolated subprocess and return its result.

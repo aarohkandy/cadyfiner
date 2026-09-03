@@ -49,6 +49,18 @@ def _set_resource_limits(
     limit``) — verified directly while building this module. Swallowing
     that silently would make the cap a no-op with no way for a caller to
     know; the returned dict makes that visible instead.
+
+    ``max_processes`` was originally 32, added by an adversarial review as
+    a fork-bomb guard, verified only on macOS — where ``RLIMIT_NPROC``
+    doesn't exist at all, so the guard was silently a total no-op there and
+    the value was never really exercised. First real Linux run (homebase)
+    hit it immediately: importing numpy inside the sandboxed subprocess
+    failed with a bare ``KeyboardInterrupt`` from deep inside
+    ``numpy._core.multiarray`` — RLIMIT_NPROC counts threads too on Linux,
+    and NumPy's BLAS backend spins up a thread pool on import, well past 32.
+    Every prior "verified" test of this limit only ran on the platform
+    where it does nothing; raised to 512, comfortably above what NumPy/OCC
+    need while still bounding an actual fork bomb.
     """
 
     applied = {"cpu": False, "address_space": False, "file_size": False, "nproc": False}
@@ -90,7 +102,7 @@ def main() -> None:
         cpu_seconds=int(payload.get("cpu_seconds", 40)),
         address_space_bytes=int(payload.get("address_space_bytes", 4 * 1024 ** 3)),
         file_size_bytes=int(payload.get("file_size_bytes", 300 * 1024 ** 2)),
-        max_processes=int(payload.get("max_processes", 32)),
+        max_processes=int(payload.get("max_processes", 512)),
     )
 
     try:
