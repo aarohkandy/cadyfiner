@@ -29,6 +29,7 @@ def generate(
     timeout: float = 300.0,
     seed: int | None = None,
     max_retries: int = 2,
+    think: bool = False,
 ) -> str:
     """Blocking call to Ollama's /api/generate, with retry on transient failures.
 
@@ -40,12 +41,25 @@ def generate(
     live: a harness run crashed entirely on the very first call, with zero
     seeds completed, because of exactly this contention with other work
     running concurrently against the same local Ollama server.
+
+    ``think=False`` by default: found live that a reasoning-capable model
+    (``gemma4:e4b``, which lists "thinking" in its capabilities) served
+    through a newer Ollama build (0.32.6, on homebase) silently spends the
+    entire ``num_predict`` budget on hidden reasoning tokens and returns an
+    EMPTY ``response`` field with ``done_reason: "length"`` — no error, no
+    warning, just nothing, unless reasoning is explicitly turned off. The
+    same model through this project's local (older) Ollama app never
+    triggered it, so this is a real behavioral difference between Ollama
+    versions for the identical model file, not a one-off fluke — worth
+    disabling explicitly everywhere rather than trusting a given server's
+    default.
     """
 
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
+        "think": think,
         "options": {"temperature": temperature, "num_predict": max_tokens, "seed": seed},
     }
     last_error: Exception | None = None
