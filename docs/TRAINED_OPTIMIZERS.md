@@ -115,7 +115,13 @@ gemma4:e4b workspace/synthetic_prompts.json workspace/distillation_data.jsonl 90
 90 of the 176 prompts given the wall-clock cost (3 LLM/CAD-generation calls per prompt at
 45-150s each on CPU-only local inference).
 
-**[PENDING]** Final accepted/rejected/error counts, once the run completes.
+**Result**: 76 total accepted (input, output) examples — 2 from an initial local-generation
+batch (run before the move to homebase), 74 from the completed homebase run over 87 attempted
+prompts (indices 3-89 of the 176-prompt pool): **accepted=74 rejected=13 errors=0**, an 85%
+acceptance rate with zero infrastructure failures in this final clean run (the earlier 90s-
+timeout and RLIMIT_NPROC bugs documented elsewhere in this project's history were both fixed
+before this run, and it shows: no errors at all, versus the partial/failed attempts that preceded
+it).
 
 ### 3.2 Model 2: expert-labeled scenarios, not exhaustive rejection sampling
 
@@ -186,11 +192,26 @@ benchmark call to a large (25.8B) model on the same shared homebase box left it 
 unloaded on its own. Worth naming plainly rather than omitting: it's a real reminder to check for
 lingering loaded models before launching a resource-sensitive job on shared infrastructure.
 
-**Model 1 (Stage-2 gap-filler) — data generation in progress; training pending.** The local
-Ollama-based generation pipeline ran into real resource contention (the same Mac was running
-other demanding foreground software), correctly diagnosed rather than treated as a code bug — a
-trivial 2-token completion measured 30 real seconds under that load, versus normal sub-2-second
-latency.
+**Model 1 (Stage-2 gap-filler) — trained and evaluated.** 76 examples (69 train / 7 held-out
+eval, matching `train_lora.py`'s default 10% holdout), 3 epochs, 27 optimizer steps, **3576s
+(59.6 minutes) wall-clock** on homebase — the 1.5B base model makes each step meaningfully more
+expensive than Model 2's 0.5B run. Training loss fell steadily across the run (2.573 at step 1 →
+1.106 at step 27; final reported `train_loss`: 1.666). More importantly, **held-out eval loss
+fell every epoch** (1.806 → 1.338 → 1.105) and **held-out eval token accuracy rose every epoch**
+(0.595 → 0.702 → 0.742), both still moving in the right direction at epoch 3 with no sign of the
+eval curve turning back upward — the same "genuinely learning, not just memorizing" signature
+Model 2 showed. Adapter: **17.46MB** (`training/adapters/stage2/`, committed to this repo).
+
+Real-world timing note, a different flavor of the same shared-infrastructure lesson Model 2's
+section documents: partway through this run, per-step time roughly doubled (103s/step at step 1
+→ 229s/step at step 12) because of *other* heavy jobs running concurrently on the same shared
+homebase box — three 4K/60fps ffmpeg video-encode processes and a long-running RL training
+server, none related to this project, confirmed via `ps aux`/`uptime` (load average briefly
+reached ~21-22). Per-step time eased back down (to ~78-105s/step) as those other jobs finished on
+their own. Nothing was killed or deprioritized to work around this — the run was simply left to
+finish at whatever pace the shared box allowed, and it did, cleanly, in well under one wall-clock
+hour total. The original local-Mac contention problem this section used to describe is below,
+kept for the record since it's a real, separately-useful lesson about representative benchmarking.
 
 **A detour worth documenting, not hiding**: generation was first redirected over an SSH tunnel
 to homebase's own larger, already-provisioned Ollama service (25.8B `ai:fast`), reasoning that a
@@ -246,7 +267,35 @@ fixable/not-fixable judgment specifically. The real test is the one described ab
 table — inside `optimize.py`, on fresh diagnostics, compared against the general-purpose
 model's own mutation proposals — and that comparison has not been run yet.
 
-**[PENDING]** Model 1's training + both models' full end-to-end re-evaluations.
+**Model 2 — the real end-to-end comparison (`scripts/compare_policy_proposer.py`).** 50
+expert-labeled scenarios (the same set described in Section 3.2, held out from training), each
+put through `optimize.py`'s actual `_propose_mutation()` call site twice — once with the
+general-purpose model (`gemma4:e4b`), once with the trained model — and scored by whether the
+proposal's fixable-vs-not verdict matches the expert label. This is the real test the previous
+table's caveat pointed to: fresh diagnostics, the actual production call site, not a training-
+adjacent split.
+
+| | agreement with expert label |
+|---|---|
+| general-purpose model (`gemma4:e4b`) | 24/50 = 48.0% |
+| trained model (Model 2) | 23/50 = 46.0% |
+
+**Read this honestly, not optimistically — this is not a good result for either model.** The
+scenario set is 26 not-fixable / 24 fixable (52%/48%), so a trivial constant-"not fixable"
+baseline scores 52% — *better than both real models tested here*. Model 2 does not beat the
+general-purpose model it was meant to specialize past (46.0% vs 48.0%, a 1-example difference,
+well within noise at n=50), and neither beats simply guessing the majority class. This is a
+materially different, more informative finding than the preliminary 4/7 check above: it's not
+that Model 2 specifically failed to learn its training data — it's that **the fixable-vs-not
+judgment, from a short diagnostic string alone, appears to be a hard problem for an LLM at either
+scale currently tested here**, general-purpose or trained. That points at the *task framing*
+(is a one-line diagnostic enough signal? does the label itself need richer context than what's
+given at inference time?) as the thing to revisit, not simply "train on more examples" — more
+data would not obviously fix a ceiling this low for the general-purpose model too.
+
+**[PENDING]** Model 1's real end-to-end harness comparison (`scripts/run_harness_trained.py`),
+running now on homebase — this section will be updated with its result, whatever it turns out to
+be, before this document is considered final.
 
 ## 6. Known limitations (stated up front, not discovered later)
 

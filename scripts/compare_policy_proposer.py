@@ -19,6 +19,7 @@ from cadyfiner.optimize import Candidate, _propose_mutation
 from cadyfiner.refine_stage2 import DEPTH_POLICY
 
 CADQUERY_MODEL = sys.argv[1] if len(sys.argv) > 1 else "gemma4:e4b"
+BASE_URL = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:11434"
 POLICY_ADAPTER = str(Path(__file__).resolve().parents[1] / "training" / "adapters" / "policy")
 
 
@@ -31,7 +32,7 @@ def main() -> None:
         diagnostics = [f"[seed_x] {s['diagnostic_text']}"]
         expected_fixable = bool(s["policy_fixable"])
 
-        general_child = _propose_mutation(parent, diagnostics, ollama_generate, {"model": CADQUERY_MODEL, "temperature": 0.3, "max_tokens": 300, "timeout": 120})
+        general_child = _propose_mutation(parent, diagnostics, ollama_generate, {"model": CADQUERY_MODEL, "base_url": BASE_URL, "temperature": 0.3, "max_tokens": 300, "timeout": 120})
         general_fixable = general_child.label != parent.label  # _propose_mutation returns `parent` unchanged on no-op/failure
 
         trained_child = _propose_mutation(

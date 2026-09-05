@@ -57,7 +57,7 @@ def _stage_rank(leg1_result) -> int:
 def main() -> None:
     prompts = json.loads(PROMPTS_PATH.read_text())["prompts"][START_INDEX:START_INDEX + MAX_PROMPTS]
     kwargs = {
-        "model": TEACHER_MODEL, "temperature": 0.5, "max_tokens": 2000, "timeout": 90,
+        "model": TEACHER_MODEL, "temperature": 0.5, "max_tokens": 2000, "timeout": 220,
         "max_retries": 1, "base_url": BASE_URL,
     }
 

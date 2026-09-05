@@ -28,6 +28,7 @@ CADQUERY_MODEL = sys.argv[1] if len(sys.argv) > 1 else "gemma4:e4b"
 STAGE2_BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 STAGE2_ADAPTER_PATH = str(Path(__file__).resolve().parents[1] / "training" / "adapters" / "stage2")
 ROLES = sys.argv[2].split(",") if len(sys.argv) > 2 else ["heldout_same_family", "heldout_family"]
+BASE_URL = sys.argv[3] if len(sys.argv) > 3 else "http://localhost:11434"
 
 
 def load_seeds() -> list[SeedCase]:
@@ -67,7 +68,7 @@ def main() -> None:
     def dispatch(prompt: str, **kwargs):
         if prompt.startswith(stage2_marker):
             return trained_generate(prompt, base_model=STAGE2_BASE_MODEL, adapter_path=STAGE2_ADAPTER_PATH)
-        return ollama_generate(prompt, model=CADQUERY_MODEL, **{k: v for k, v in kwargs.items() if k != "model"})
+        return ollama_generate(prompt, model=CADQUERY_MODEL, base_url=BASE_URL, **{k: v for k, v in kwargs.items() if k != "model"})
 
     results = run_paired_evaluation(
         seeds, dispatch, reps=1,
