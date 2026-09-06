@@ -99,8 +99,43 @@ Current policy:
 Recent failures when generating from this policy (each line: [seed_id] check stage that failed and why):
 {chr(10).join(diagnostics[:15])}
 
-Propose ONE change to the policy that might fix some of these failures — add or remove ONE category
-from ONE object class's list. Output ONLY a JSON object: {{"object_class": "...", "add": "..." or null, "remove": "..." or null}}
+STEP 1 — check whether an edit is even POSSIBLE before considering whether it would help.
+Look at the "Current policy" above. An "add" only ever changes anything if the category is NOT
+already in that object class's list — adding a category that's already present is a silent no-op
+that changes nothing, no matter how well-reasoned it sounds. A "remove" only changes anything if
+the category IS currently present. Before proposing anything, check: is the category I'm about to
+name actually absent (for add) or present (for remove) in the CURRENT policy for the class I'm
+naming? If not, that edit does nothing — do not propose it.
+
+STEP 2 — a policy edit (when one is even possible per Step 1) can ONLY help failures that are
+actually about MISSING PROMPT INFORMATION — the generator had no dimension, feature, or process
+detail to build from, so it guessed wrong. It CANNOT help failures that are really about the
+CAD-code-generation model itself misbehaving — these look like: a Python SyntaxError, an
+AttributeError/TypeError from calling a CadQuery method that doesn't exist or was called with the
+wrong arguments, a prefilter rejection (the model broke a hard rule like calling a banned
+function), or any other exception that isn't a dimension/feature mismatch. On this project's own
+real failure history, MOST diagnostics are this second kind — a code-authoring bug, not a
+missing-detail gap — and adding or removing a policy category changes nothing about a bug like
+that.
+
+STEP 3 — a single dimension/count measured wildly off ("measured X vs stated Y") is USUALLY NOT
+fixable by this mechanism either, even though it looks like a missing-information problem: if
+"dimensions" (or the relevant category) is already in the current policy, the refiner was already
+allowed to state it, so the miss is the refiner's or generator's OWN accuracy, not a missing
+permission — check Step 1 again for this exact case. What genuinely IS still fixable, when the
+category is absent: signs of a MULTI-PART / ASSEMBLY / PLACEMENT problem that no single dimension
+number explains — multiple disconnected solids, non-manifold or coincident-face junctions, parts
+only touching (not fused), features whose exact position/orientation was never specified. That
+kind of failure is a real candidate for adding "topology" or "feature_placement", specifically
+when the class's list doesn't already include it.
+
+So: only propose an edit if (a) per Step 1 it would actually change the policy, AND (b) per Steps
+2-3 the failure is genuinely a missing-information problem this edit would address. If either
+condition fails for every failure line, the correct answer is to propose NO change at all.
+
+Output ONLY a JSON object: {{"object_class": "..." or null, "add": "..." or null, "remove": "..." or null}}
+— use null for all three fields when no policy change is warranted. Do not force an edit just to
+have an answer, and do not propose an edit that Step 1 shows would be a no-op.
 """
     raw = generate(prompt, **generate_kwargs)
     try:
