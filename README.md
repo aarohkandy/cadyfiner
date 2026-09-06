@@ -77,6 +77,26 @@ unverified until run once for real).
    mechanical parts and it doesn't work well; that's expected until a
    better local model re-runs the pilot cleanly (see
    `scripts/run_pilot.py`).
+5. **A full CAD-code-generation reliability investigation** (see
+   [`docs/CADGEN_RELIABILITY.md`](docs/CADGEN_RELIABILITY.md)) found this
+   isn't specific to one weak model: `gemma4:e4b` (8B), `qwen2.5-coder:7b`,
+   and a 25.8B general-purpose model all independently hallucinate
+   CadQuery API calls, each in its own different way, on the same held-out
+   seeds — model size and "coder" specialization don't fix it, because
+   CadQuery is niche enough that none of them have seen much real usage of
+   it in training. Four prompt-side fixes (few-shot examples, an API
+   cheat-sheet, a static pre-check, a self-repair retry loop) were built,
+   verified, and tested; none closed the gap on their own or combined.
+   **The fix that actually worked**: hand-written, sandbox-verified
+   CadQuery templates for this project's known object families, with the
+   LLM's role reduced to what it's already reliable at (extracting
+   dimensions/features from a prompt) and never touching CadQuery syntax
+   for a covered family. Validated result: **18/21 seed-bank items now
+   pass (85.7%), up from 2/13 (~15%) for the best LLM-only configuration
+   tested** — see `cadyfiner/oracle/templates.py` and the dedicated doc for
+   the full methodology, honest limitations, and how this changes what the
+   paired raw-vs-refined statistic can and can't measure for a templated
+   family.
 
 ## Architecture, and why each piece looks the way it does
 
@@ -165,7 +185,18 @@ rate, 95% CI, exact sign-test p, and per-family/per-role breakdowns.
 - **Stage 1 extraction is regex-based, not real NLP.** It handles the
   phrasing patterns in this project's own seed bank well (tested); it will
   get confused by phrasing it's never seen. Stage 2's LLM call is the
-  intended backstop, not Stage 1 being perfect.
+  intended backstop, not Stage 1 being perfect. Found live: on a densely
+  worded "high-specificity" prompt with two dimension mentions close
+  together (e.g. "100mm outer diameter, 8mm overall thickness"), the
+  proximity-based number-matching can grab the wrong one — the direct
+  cause of 3 of the 21 seed-bank items not passing under the template fast
+  path (see evidence #5 and `docs/CADGEN_RELIABILITY.md`); characterized
+  and documented, not yet fixed.
+- **The CAD-code-generation template fast path only covers 7 known
+  families.** Anything else falls back to the free-form LLM path this
+  whole investigation found unreliable — say so if you hit an
+  unrecognized object type and it doesn't work well; that's the existing,
+  known ceiling, not a regression.
 - **The mechanical-parts depth policy is unvalidated** (see evidence #4
   above) — a reasoned default, not a proven-optimal one.
 - **The frontier (`ANTHROPIC_API_KEY`) backend has never been run

@@ -25,6 +25,7 @@ from typing import Callable
 
 from cadyfiner.oracle.checks import evaluate_leg1
 from cadyfiner.oracle.execute import CADQUERY_PROMPT_RULES, extract_code, run_cadquery
+from cadyfiner.oracle.templates import build_template_code, detect_family
 from cadyfiner.refine import extract
 from cadyfiner.refine_stage2 import fill_gaps
 from cadyfiner.spec import DesignBrief
@@ -53,10 +54,25 @@ class PairedResult:
     # and both arms received byte-identical prompt text — see run_paired_evaluation's docstring.
 
 
-def _run_one(prompt_text: str, ground_truth: DesignBrief, generate: Callable, out_dir: Path, generate_kwargs: dict):
-    full_prompt = CADQUERY_PROMPT_RULES + f"\nDesign request:\n{prompt_text}\n"
-    raw_output = generate(full_prompt, **generate_kwargs)
-    code = extract_code(raw_output)
+def _run_one(prompt_text: str, ground_truth: DesignBrief, generate: Callable, out_dir: Path, generate_kwargs: dict,
+              raw_prompt_for_family_detection: str | None = None):
+    """``raw_prompt_for_family_detection`` (defaults to ``prompt_text`` when not given, so
+    existing callers/tests are unaffected) drives the template fast path (see
+    cadyfiner/oracle/templates.py): family detection is deliberately run against the RAW
+    prompt, not ``prompt_text``, so it works identically whether this call is scoring the
+    raw or the refined arm — a templated family's code generation no longer depends on
+    prompt TEXT at all, only on Stage 1's structured extraction, so raw_pass == refined_pass
+    for those seeds by construction. That's a correct, expected outcome, not a bug: it means
+    the paired refined-vs-raw comparison becomes a tie for a templated family (refining the
+    prompt text can't move a deterministic, already-reliable code path), and the overall
+    pass-rate lift is where the template's real benefit shows up instead."""
+
+    family = detect_family(raw_prompt_for_family_detection or prompt_text)
+    code = build_template_code(family, extract(raw_prompt_for_family_detection or prompt_text).spec) if family else None
+    if code is None:
+        full_prompt = CADQUERY_PROMPT_RULES + f"\nDesign request:\n{prompt_text}\n"
+        raw_output = generate(full_prompt, **generate_kwargs)
+        code = extract_code(raw_output)
     execution = run_cadquery(code, out_dir, timeout_s=90)
     return evaluate_leg1(execution, ground_truth)
 
@@ -108,6 +124,7 @@ def run_paired_evaluation(
                 raw_leg1 = _run_one(
                     seed.raw_prompt, seed.ground_truth, generate,
                     out_root / f"{seed_id}_raw", generate_kwargs,
+                    raw_prompt_for_family_detection=seed.raw_prompt,
                 )
 
                 extraction = extract(seed.raw_prompt)
@@ -121,6 +138,7 @@ def run_paired_evaluation(
                 refined_leg1 = _run_one(
                     refined_prompt_text, seed.ground_truth, generate,
                     out_root / f"{seed_id}_refined", generate_kwargs,
+                    raw_prompt_for_family_detection=seed.raw_prompt,
                 )
             except Exception as exc:  # noqa: BLE001 — generator/network failures are expected, not exceptional, here
                 skipped.append(f"{seed_id}: {type(exc).__name__}: {exc}")

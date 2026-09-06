@@ -21,6 +21,7 @@ from pathlib import Path
 
 from cadyfiner.oracle.checks import evaluate_leg1
 from cadyfiner.oracle.execute import CADQUERY_PROMPT_RULES, extract_code, run_cadquery
+from cadyfiner.oracle.templates import build_template_code, detect_family
 from cadyfiner.refine import extract
 from cadyfiner.refine_stage2 import fill_gaps
 from cadyfiner.spec import DesignBrief
@@ -103,19 +104,31 @@ def cmd_refine(args) -> None:
 
 
 def cmd_generate(args) -> None:
-    generate = _get_generator(args.backend)
     prompt_text = args.prompt
+    spec = extract(args.prompt).spec
     if args.refine:
         stage2_backend = args.stage2_backend or args.backend
         stage2_generate = _get_stage2_generator(stage2_backend)
         extraction = extract(args.prompt)
         filled = fill_gaps(extraction, stage2_generate, **_generate_kwargs(args, stage2_backend))
         prompt_text = filled.spec.refined_prompt or args.prompt
+        spec = filled.spec
         print(f"Refined prompt used for generation:\n{prompt_text}\n", file=sys.stderr)
 
-    full_prompt = CADQUERY_PROMPT_RULES + f"\nDesign request:\n{prompt_text}\n"
-    raw_output = generate(full_prompt, **_generate_kwargs(args))
-    code = extract_code(raw_output)
+    # Template fast path: for a known object family (see cadyfiner/oracle/templates.py),
+    # a hand-verified parametric template replaces free-form LLM code generation entirely --
+    # exhaustive testing found no tested LLM (8B-25.8B, general-purpose or "coder") reliably
+    # writes valid CadQuery from scratch, regardless of prompt engineering. An unrecognized
+    # family falls straight through to the existing LLM path below, unchanged.
+    family = detect_family(args.prompt)
+    code = build_template_code(family, spec) if family else None
+    if code is not None:
+        print(f"Using verified template for detected family: {family}", file=sys.stderr)
+    else:
+        generate = _get_generator(args.backend)
+        full_prompt = CADQUERY_PROMPT_RULES + f"\nDesign request:\n{prompt_text}\n"
+        raw_output = generate(full_prompt, **_generate_kwargs(args))
+        code = extract_code(raw_output)
 
     out_dir = Path(args.out).parent if args.out else Path("workspace/cli_out")
     execution = run_cadquery(code, out_dir, timeout_s=args.timeout)

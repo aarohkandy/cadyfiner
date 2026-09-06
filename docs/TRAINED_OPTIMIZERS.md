@@ -336,6 +336,19 @@ many more reps per seed to accumulate enough decisive pairs through the noise. B
 follow-up work, not done here — the honest conclusion at this sample size is **inconclusive**,
 not **supported**.
 
+**Follow-up, done**: the "stronger/more reliable CAD-code generator" this section called for
+turned out not to be a bigger model at all — see
+[`docs/CADGEN_RELIABILITY.md`](CADGEN_RELIABILITY.md) for the full investigation. Four
+prompt-side fixes and three different model sizes (8B–25.8B) were all tried and none closed
+the gap; what actually worked was replacing free-form LLM code generation with verified
+templates for this project's known object families, taking the overall seed-bank pass rate
+from 2/13 to 18/21. That does resolve the generator-reliability bottleneck this section
+identified — but it also means the paired refined-vs-raw comparison stops being the right
+lens for a templated family (code generation no longer depends on prompt text at all once
+templated — see that document's §5), so it isn't a like-for-like re-run of the table above.
+Whether the *trained* Stage-2 model specifically beats the general-purpose one remains
+untested by anything in this document.
+
 ## 6. Known limitations (stated up front, not discovered later)
 
 - Both training sets are **synthetic, teacher-generated, and modest in size** (dozens to low
