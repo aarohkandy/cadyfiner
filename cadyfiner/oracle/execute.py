@@ -1,6 +1,6 @@
 """Sandboxed CadQuery execution: subprocess isolation + timeout + JSON IPC.
 
-Public entry point is :func:`run_cadquery`. Two-layer defense, ported from
+Public entry point is :func:`run_cadquery`. Three-layer defense, ported from
 the two existing local repos rather than depending on either as a package
 (``ai-cad`` drags in FastAPI/planner/compiler machinery cadyfiner doesn't
 need; ``cadybara-kitchen``'s in-process ``exec()`` has no timeout, which is
@@ -11,7 +11,13 @@ loop):
    ``DISALLOWED_PATTERNS``) rejects obviously-bad code before paying for a
    subprocess + CadQuery import cycle. This is a fast-fail heuristic, not a
    security boundary.
-2. Actual isolation is the OS process itself (:mod:`cadyfiner.oracle.
+2. A static API-existence check (:mod:`cadyfiner.oracle.api_check`) parses
+   the AST and cross-checks CadQuery attribute/method usage against the real
+   installed package, catching a real, common failure mode this project
+   diagnosed directly: a code-generation model calling a CadQuery method
+   that simply doesn't exist. See that module's docstring for exactly what
+   it does and doesn't catch.
+3. Actual isolation is the OS process itself (:mod:`cadyfiner.oracle.
    _subprocess_entry`, invoked out-of-process in its own session with a
    wall-clock timeout and RLIMIT_CPU/RLIMIT_AS/RLIMIT_FSIZE/RLIMIT_NPROC
    resource caps) — the same subprocess pattern
@@ -45,6 +51,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from cadyfiner.oracle.api_check import check_api_usage
+
 CADQUERY_PROMPT_RULES = """You are generating parametric CAD source code.
 
 Return only Python CadQuery code. Do not explain the design in prose.
@@ -67,6 +75,97 @@ Hard requirements:
 - Prefer simple, printable, watertight solids using boxes, cylinders, holes, cuts,
   unions, fillets, and chamfers.
 - If fillets fail on complex geometry, omit them instead of producing invalid code.
+
+API quick-reference (verified against installed cadquery 2.8.0 -- these are the exact names/signatures):
+
+Box / cylinder / hole:
+  cq.Workplane("XY").box(length, width, height)
+  cq.Workplane("XY").cylinder(height, radius)
+  wp.faces(">Z").workplane().hole(diameter)                            # single centered hole
+  wp.faces(">Z").workplane().pushPoints([(x, y), ...]).hole(diameter)  # multiple holes
+
+Sketch -> extrude -> result (draw a 2D profile on the stack, then extrude it):
+  cq.Workplane("XY").circle(radius).extrude(height)
+  cq.Workplane("XY").rect(xLen, yLen).extrude(height)
+  cq.Workplane("XY").polyline([(x1, y1), (x2, y2), ...]).close().extrude(height)
+  # extrude() with no circle/rect/polyline+close first raises "No pending wires present".
+
+Fillet / chamfer (select edges first):
+  wp.edges("|Z").fillet(radius)     # radius, not diameter
+  wp.edges("|Z").chamfer(length)    # length, not radius; chamfer(length, length2) for an asymmetric chamfer
+
+Boolean ops are Workplane METHODS, not module functions:
+  a.union(b)
+  a.cut(b)
+  a.intersect(b)
+
+Rotate / translate take full point/vector tuples, not separate x/y/z arguments:
+  wp.rotate(axisStartPoint, axisEndPoint, angleDegrees)   # e.g. .rotate((0,0,0), (0,0,1), 90)
+  wp.translate((dx, dy, dz))
+
+Common mistakes seen in real generated code -- do not do these:
+  cq.Angle(...)          # does not exist; angles are plain floats in degrees
+  wp.xAxis               # does not exist on Workplane; use a tuple like (1,0,0) for an axis
+  cq.union(a, b)         # does not exist; use a.union(b)
+  wp.add(a, b, c, d)     # add() takes exactly one object/list argument: wp.add(obj)
+  wp.rotate(angle)       # rotate() needs 3 args: axisStartPoint, axisEndPoint, angleDegrees
+  edge.getTranslation()  # does not exist on Edge
+  wp.workplaneAt(...)    # does not exist; use wp.faces(">Z").workplane() or wp.workplane(offset=...)
+
+Verified worked examples (these are real, working CadQuery -- copy the chaining pattern, don't guess
+at method names or signatures):
+
+Box with a hole and rounded vertical edges (sketch -> operate -> select -> operate; this is
+the real Workplane pattern, not a sequence of standalone module calls):
+```python
+import cadquery as cq
+
+result = (
+    cq.Workplane("XY")
+    .box(40, 30, 10)
+    .faces(">Z")
+    .workplane()
+    .hole(6)
+    .edges("|Z")
+    .fillet(2)
+)
+```
+
+Boolean union: `.union()` is a WORKPLANE METHOD (called on one shape, taking the other as its
+argument), not a `cq.union(...)` module function:
+```python
+import cadquery as cq
+
+base = cq.Workplane("XY").box(40, 20, 10)
+boss = cq.Workplane("XY").center(10, 0).box(10, 10, 20)
+result = base.union(boss)
+```
+
+Rotate and translate: `rotate` takes an axis start point, an axis end point, and a degree
+angle (three required args, not one) -- `.rotate((0,0,0), (0,0,1), 45)` rotates 45 degrees
+around the Z axis through the origin. `translate` takes one (x, y, z) offset tuple:
+```python
+import cadquery as cq
+
+part = cq.Workplane("XY").box(30, 10, 5)
+result = part.rotate((0, 0, 0), (0, 0, 1), 45).translate((0, 0, 20))
+```
+
+Extrude requires a 2D profile on the stack first (`.circle()`/`.rect()`/etc.) -- calling
+`.extrude()` or `.cutBlind()` with no pending wire raises "No pending wires present":
+```python
+import cadquery as cq
+
+result = (
+    cq.Workplane("XY")
+    .circle(15)
+    .extrude(8)
+    .faces(">Z")
+    .workplane()
+    .rect(10, 10)
+    .cutBlind(-4)
+)
+```
 """
 
 _BLOCK_RE = re.compile(r"```(?:python|py)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)
@@ -183,6 +282,10 @@ def run_cadquery(
     rejection = prefilter(code)
     if rejection is not None:
         return ExecutionResult(ok=False, error_type="prefilter_rejected", error_message=rejection, code=code)
+
+    api_rejection = check_api_usage(code)
+    if api_rejection is not None:
+        return ExecutionResult(ok=False, error_type="api_check_rejected", error_message=api_rejection, code=code)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]

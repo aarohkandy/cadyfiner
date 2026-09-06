@@ -80,6 +80,18 @@ class TestRunCadquery:
         assert not result.ok
         assert result.error_type == "prefilter_rejected"
 
+    def test_hallucinated_api_rejected_before_subprocess(self, tmp_path):
+        code = (
+            'import cadquery as cq\n'
+            'a = cq.Workplane("XY").box(10, 10, 10)\n'
+            'b = cq.Workplane("XY").box(5, 5, 5)\n'
+            'result = cq.union(a, b)\n'
+        )
+        result = run_cadquery(code, tmp_path, timeout_s=30)
+        assert not result.ok
+        assert result.error_type == "api_check_rejected"
+        assert "union" in result.error_message
+
     def test_infinite_loop_is_killed_by_resource_limit(self, tmp_path):
         code = (
             'import cadquery as cq\nx = 0\nwhile True:\n    x += 1\n'
