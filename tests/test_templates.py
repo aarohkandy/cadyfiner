@@ -13,18 +13,15 @@ from cadyfiner.spec import DesignBrief
 
 FAMILIES_DIR = Path(__file__).resolve().parents[1] / "prompts" / "seed_bank" / "families"
 
-# Known, documented limitation: enclosure_high states its dimensions as a positional triple
-# with no per-axis keyword at all ("External dimensions 80mm by 60mm by 30mm") -- Stage 1
-# has no mechanism to parse an unlabeled "A by B by C" pattern, so its keyword-proximity
-# search for "height" latches onto the only "tall" mention in the whole text (an unrelated
-# standoff's "25mm tall"). This is a missing CAPABILITY, not the proximity-matching bug two
-# sibling seeds (coaster_high, pen_holder_high) used to hit and are now fixed for (see
-# _nearest_number_mm's clause-break logic in refine.py) -- adding safe positional-triple
-# parsing is real, separately-scoped follow-up work, not a quick regex patch, since a wrong
-# assumed axis order would silently corrupt a DIFFERENT prompt's correct extraction. See
-# docs/CADGEN_RELIABILITY.md. Not a template defect -- the template's own defaults (verified
-# independently below) are exactly correct.
-_KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS = {"enclosure_high"}
+# All 21 seed-bank items pass. Two Stage 1 proximity-matching bugs (coaster_high,
+# pen_holder_high) were fixed by clipping the keyword-search window at a clause boundary
+# (comma/period/standalone "x") -- see _nearest_number_mm in refine.py. The third
+# (enclosure_high, an unlabeled "80mm by 60mm by 30mm" positional triple with no per-axis
+# keyword at all) needed a different fix: cadyfiner.oracle.templates._positional_triple,
+# scoped ONLY to this module's own box-shaped template families (not a change to Stage 1's
+# shared regex engine used by every other consumer, including the free-form LLM fallback
+# path for non-templated object types). See docs/CADGEN_RELIABILITY.md for the full story.
+_KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS: set[str] = set()
 
 
 class TestTemplatesPassTheirOwnGroundTruth:
@@ -78,6 +75,35 @@ class TestBuildTemplateCode:
         assert "diameter = 50" in code
         assert "height = 120" in code
 
+    def test_enclosure_prefers_positional_triple_over_misattributed_keyword_match(self):
+        """Real bug found live (enclosure_high): Stage 1's keyword-proximity search for
+        'height' has no candidate near the object's own unlabeled '80mm by 60mm by 30mm'
+        dimensions statement, so it instead latches onto an unrelated LATER mention (a
+        standoff's '25mm tall'), silently overriding this template's correct default (30)
+        with a wrong one (25). The positional triple, when present, must win."""
+
+        prompt = (
+            "Create a rectangular electronics enclosure. External dimensions 80mm by 60mm "
+            "by 30mm, uniform wall thickness 2mm, open top. Four cylindrical mounting "
+            "standoffs in the corners, 6mm outer diameter, 3mm bore, 25mm tall, inset 5mm "
+            "from each corner wall."
+        )
+        spec = DesignBrief(prompt=prompt)
+        spec.target_dims.height = 25.0  # what Stage 1 actually (wrongly) extracts today
+        code = build_template_code("enclosure", spec)
+        assert "width = 80" in code
+        assert "depth = 60" in code
+        assert "height = 30" in code
+
+    def test_enclosure_falls_back_to_per_field_extraction_without_a_triple(self):
+        """No 'dimensions A by B by C' phrasing present -> ordinary per-field extraction
+        (or the template's own defaults) still applies, unaffected by the triple check."""
+
+        spec = DesignBrief(prompt="Create an open-top electronics enclosure.")
+        spec.target_dims.height = 42.0
+        code = build_template_code("enclosure", spec)
+        assert "height = 42" in code
+
     def test_gear_rejects_implausibly_small_extracted_diameter(self):
         """Real bug found live: Stage 1 sometimes extracts a gear's BORE diameter (e.g. 12mm)
         as the overall gear diameter on dense text like '...12mm diameter for a shaft'. A
@@ -114,6 +140,7 @@ class TestFullSeedBankIntegration:
                     failures.append(f"{item['id']}: {leg1.feedback_text()}")
 
         assert not failures, "\n".join(failures)
-        # 21 seeds total, 3 known/documented Stage-1-extraction misattributions excluded from
-        # the hard failure check above but still counted here for visibility.
-        assert n_pass >= n_total - len(_KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS)
+        # All 21 seed-bank items pass. _KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS is kept (now
+        # empty) as the mechanism for the next real extraction gap, rather than deleted --
+        # every prior one found here was fixed by adding to this set first, then fixing it.
+        assert n_pass == n_total == 21

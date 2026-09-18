@@ -171,32 +171,57 @@ positional pattern that doesn't actually appear anywhere in real usage.
 **Result: 20/21 (95.2%)**, confirmed again through the real harness after the fix. All
 pre-existing tests (112 total across the project) still pass — nothing regressed.
 
-The 1 remaining failure (`enclosure_high`) is a different kind of gap: its prompt states
+The 1 remaining failure (`enclosure_high`) was a different kind of gap: its prompt states
 dimensions as an unlabeled positional triple ("External dimensions 80mm by 60mm by 30mm")
-with no per-axis keyword anywhere near it, so Stage 1's keyword-proximity search has no
-candidate for "height" from that phrase at all — it instead latches onto the only "tall"
+with no per-axis keyword anywhere near it, so Stage 1's keyword-proximity search had no
+candidate for "height" from that phrase at all — it instead latched onto the only "tall"
 mention in the whole prompt (an unrelated standoff's "25mm tall"). This is a missing
-*capability* (positional-triple parsing), not a proximity-matching bug, and deliberately
-not patched here: assuming a fixed axis order ("by" always means width-by-depth-by-height)
-would be a real, separately-scoped design decision that could silently misread a different
-prompt using the same phrasing for a different axis order (e.g. a cylinder's "80mm by
-30mm" meaning diameter-by-height) — worth doing carefully, not as a quick regex addition
-riding on this fix's momentum.
+*capability* (positional-triple parsing), not a proximity-matching bug, and assuming a fixed
+axis order ("by" always means width-by-depth-by-height) is a real design decision that could
+silently misread a *different* prompt using the same phrasing for a different axis order
+(e.g. a cylinder's "80mm by 30mm" meaning diameter-by-height) — too risky to add to Stage 1's
+shared regex engine, which every other consumer (including the free-form LLM fallback path
+for every non-templated object type) also relies on.
+
+### 4.2 Follow-up fix: the last one, done at the template layer instead
+
+The resolution wasn't "parse it more cleverly" — it was "change *where* the fix lives."
+`cadyfiner/oracle/templates.py`'s dispatcher already knows the object family before it ever
+looks at dimensions (that's the whole point of `detect_family`), so a wrong assumed axis
+order there can only ever affect the 7 families this module already covers — a materially
+different, much smaller blast radius than a change to Stage 1's shared engine. `enclosure`'s
+dispatch branch now checks for a `"dimensions ... N mm by N mm by N mm"` pattern anchored on
+the literal word "dimensions" *before* falling back to Stage 1's per-field extraction, and
+uses it (width, depth, height, in that order) when found — see `_positional_triple` in
+`templates.py`.
+
+Two supporting facts made this a safe, not just convenient, fix: `width`/`depth` were
+*already* correct for `enclosure_high` even without this change (Stage 1 extracted nothing
+for either field, so the dispatcher was already falling back to the template's own
+ground-truth-matched defaults) — the triple only ever needed to correct the one field Stage 1
+got *actively wrong*, not fill in gaps it left empty. And it's additive: when no
+"dimensions"-anchored triple is present, dispatch behaves exactly as before (see
+`tests/test_templates.py`'s `test_enclosure_falls_back_to_per_field_extraction_without_a_triple`).
+
+**Result: 21/21 (100%)** — every seed-bank item, across all 3 specificity tiers and all 7
+families, passes through the real Stage-1-extraction → family-detection → template-dispatch →
+sandboxed-execution → scoring pipeline (`scripts/verify_templates_full.py`), confirmed again
+via the real statistical harness (`raw=21/21 refined=21/21`, §5 below).
 
 ## 5. What this means for the paired raw-vs-refined harness statistic
 
 For a templated family, code generation depends only on Stage 1's structured extraction, not
 on prompt *text* — so `raw_pass == refined_pass` for that seed **by construction**: refining
 the prompt's wording cannot move a deterministic, already-reliable code path. Running the
-full harness across all 21 seeds confirms exactly this, both before and after the §4.1 Stage 1
-fix — 0 refined wins, 0 raw wins, every pair a tie (Stage 2's fallback-exclusion count varies
-run to run with its own LLM-call stochasticity, unrelated to this fix — 3 excluded on the
-first run, 5 on the confirming re-run) — `summarize()`'s correct verdict is "INCONCLUSIVE: no
-decisive pairs," which is the honest, expected output of that statistic in this new regime,
-not a new negative result. **The overall pass-rate lift (2/13 → 20/21) is where the real,
-measured benefit shows up — the paired refinement-effect statistic isn't the right lens for
-a templated family anymore, and this document says so rather than reporting a technically-
-true-but-misleading "0% win rate."**
+full harness across all 21 seeds confirms exactly this, across every stage of the §4.1/§4.2
+fixes — 0 refined wins, 0 raw wins, every pair a tie (Stage 2's fallback-exclusion count
+varies run to run with its own LLM-call stochasticity, unrelated to these fixes — 3, 5, and
+3 excluded across three separate confirming runs) — `summarize()`'s correct verdict is
+"INCONCLUSIVE: no decisive pairs," which is the honest, expected output of that statistic in
+this new regime, not a new negative result. **The overall pass-rate lift (2/13 → 21/21) is
+where the real, measured benefit shows up — the paired refinement-effect statistic isn't the
+right lens for a templated family anymore, and this document says so rather than reporting a
+technically-true-but-misleading "0% win rate."**
 
 ## 6. Honest limitations
 
@@ -206,9 +231,12 @@ true-but-misleading "0% win rate."**
   without the same hallucination risk this document just spent five sections diagnosing.
 - **Family detection is keyword-based**, same honesty as Stage 1's own classifier: it will
   miss phrasing outside what this project's seed bank exercises.
-- **The dimension-mapping bridge (`build_template_code`) inherits Stage 1's extraction
-  bugs** for the parameters it does forward (see §4's 3 remaining failures) — a template
-  can't correct for a wrong number it was handed.
+- **The dimension-mapping bridge (`build_template_code`) inherits Stage 1's extraction bugs**
+  for the parameters it does forward, except where a family-specific override exists (the
+  gear diameter sanity floor, `enclosure`'s positional-triple check) — a template still can't
+  correct for a wrong number in a family without one. All 21 known seeds pass today; a new,
+  differently-phrased prompt could still surface a fourth extraction bug this document hasn't
+  seen yet.
 - **This doesn't validate whether refining the prompt TEXT helps** for a templated family —
   see §5. It validates something different and arguably more useful for these families:
   reliable geometric correctness, independent of prompt wording quality.

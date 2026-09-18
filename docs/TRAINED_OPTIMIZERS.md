@@ -342,7 +342,8 @@ turned out not to be a bigger model at all — see
 prompt-side fixes and three different model sizes (8B–25.8B) were all tried and none closed
 the gap; what actually worked was replacing free-form LLM code generation with verified
 templates for this project's known object families, taking the overall seed-bank pass rate
-from 2/13 to 20/21 (see that document's §4, updated after a Stage-1 extraction fix). That
+from 2/13 to a perfect 21/21 (see that document's §4, after three separate follow-up bug
+fixes). That
 does resolve the generator-reliability bottleneck this section identified — but it also
 means the paired refined-vs-raw comparison stops being the right lens for a templated family
 (code generation no longer depends on prompt text at all once templated — see that

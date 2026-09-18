@@ -91,14 +91,16 @@ unverified until run once for real).
    CadQuery templates for this project's known object families, with the
    LLM's role reduced to what it's already reliable at (extracting
    dimensions/features from a prompt) and never touching CadQuery syntax
-   for a covered family. Validated result: **20/21 seed-bank items now
-   pass (95.2%), up from 2/13 (~15%) for the best LLM-only configuration
+   for a covered family. Validated result: **all 21 seed-bank items pass
+   (100%), up from 2/13 (~15%) for the best LLM-only configuration
    tested** — see `cadyfiner/oracle/templates.py` and the dedicated doc for
    the full methodology, honest limitations, and how this changes what the
    paired raw-vs-refined statistic can and can't measure for a templated
-   family. The last remaining failure is a real, characterized Stage 1
-   limitation (no mechanism to parse an unlabeled "80mm by 60mm by 30mm"
-   positional triple), not a template defect.
+   family. Getting there took three separate, real bug fixes past the
+   initial 18/21 (two Stage 1 proximity-matching bugs, one positional-
+   dimension-triple gap solved at the template-dispatch layer rather than
+   in Stage 1's shared extraction) — see the doc for why each fix was safe
+   to make and what it would have risked done carelessly.
 
 ## Architecture, and why each piece looks the way it does
 
@@ -193,13 +195,14 @@ rate, 95% CI, exact sign-test p, and per-family/per-role breakdowns.
   "65mm outer diameter x 95mm tall"), proximity-based number-matching used
   to grab the wrong one, crossing a clause boundary it didn't know was
   there — fixed by clipping the search window at a comma/period/standalone
-  "x" (see `_nearest_number_mm` in `refine.py`). One remaining, different
-  case is still open: a prompt stating dimensions as an unlabeled
-  positional triple ("External dimensions 80mm by 60mm by 30mm", no
-  per-axis keyword at all) has no extraction mechanism yet — a missing
-  capability, not a proximity bug, and a wrong assumed axis order would
-  risk corrupting a different prompt's correct extraction if patched
-  hastily (see evidence #5 and `docs/CADGEN_RELIABILITY.md`).
+  "x" (see `_nearest_number_mm` in `refine.py`). A third, different case
+  (a prompt stating dimensions as an unlabeled positional triple, "External
+  dimensions 80mm by 60mm by 30mm", no per-axis keyword at all) needed a
+  different fix, made at the template-dispatch layer instead of in Stage
+  1's own shared extraction (see evidence #5 and `docs/CADGEN_RELIABILITY.md`
+  §4.2 for why that's a materially safer place for an axis-order assumption
+  to live) — Stage 1 itself still can't parse that phrasing generally, for
+  any consumer other than the 7 templated families.
 - **The CAD-code-generation template fast path only covers 7 known
   families.** Anything else falls back to the free-form LLM path this
   whole investigation found unreliable — say so if you hit an

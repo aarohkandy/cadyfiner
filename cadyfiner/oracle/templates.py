@@ -25,6 +25,8 @@ guarantees apply even though this code is trusted.
 
 from __future__ import annotations
 
+import re
+
 
 def bracket_code(width: float = 60, height: float = 60, thickness: float = 4,
                   flange_width: float = 40.0, hole_size: float = 5.0, hole_inset: float = 10.0) -> str:
@@ -337,6 +339,34 @@ def _feature_value(spec, kind_substring: str, field: str = "size") -> float | No
     return None
 
 
+_POSITIONAL_TRIPLE = re.compile(
+    r"dimensions?\s+(?:are\s+|of\s+)?(\d+(?:\.\d+)?)\s*mm\s*(?:by|x)\s*"
+    r"(\d+(?:\.\d+)?)\s*mm\s*(?:by|x)\s*(\d+(?:\.\d+)?)\s*mm",
+    re.IGNORECASE,
+)
+
+
+def _positional_triple(prompt: str) -> tuple[float, float, float] | None:
+    """Catch a box's overall size stated as an unlabeled (width, depth, height) triple right
+    after the word "dimensions" -- e.g. "External dimensions 80mm by 60mm by 30mm" -- which
+    Stage 1's keyword-proximity search has no mechanism to parse at all (there's no per-axis
+    keyword anywhere near it). Found live: on exactly this phrasing, Stage 1's "height" search
+    instead latched onto an unrelated LATER mention ("25mm tall", describing a sub-feature),
+    silently overriding this template's otherwise-correct default with a wrong value.
+
+    Deliberately scoped to being called only from this module, for the specific box-shaped
+    template families that need it -- not a change to Stage 1's shared, general-purpose
+    regex engine, which every OTHER consumer (including the free-form LLM fallback path for
+    every non-templated object type) also relies on. A wrong assumed axis order here only
+    ever affects a family this module already covers, never anything else.
+    """
+
+    match = _POSITIONAL_TRIPLE.search(prompt)
+    if not match:
+        return None
+    return tuple(float(g) for g in match.groups())  # type: ignore[return-value]
+
+
 def build_template_code(family: str, spec) -> str | None:
     """Map a DesignBrief's extracted dimensions/features onto the matching template's
     kwargs, falling back to that template's own (ground-truth-matched) defaults for
@@ -369,12 +399,22 @@ def build_template_code(family: str, spec) -> str | None:
         if dims.thickness is not None:
             kwargs["thickness"] = dims.thickness
     elif family == "enclosure":
-        if dims.width is not None:
-            kwargs["width"] = dims.width
-        if dims.depth is not None:
-            kwargs["depth"] = dims.depth
-        if dims.height is not None:
-            kwargs["height"] = dims.height
+        triple = _positional_triple(spec.prompt)
+        if triple is not None:
+            # Takes priority over Stage 1's per-field extraction below: a "dimensions W by D
+            # by H" triple is a single, holistic statement about the object's own overall
+            # envelope, a stronger signal than a scattered keyword match that (found live,
+            # enclosure_high) can cross-attribute to an unrelated sub-feature mentioned later
+            # in the same prompt (a standoff's "25mm tall" silently overriding the object's
+            # own real height of 30mm).
+            kwargs["width"], kwargs["depth"], kwargs["height"] = triple
+        else:
+            if dims.width is not None:
+                kwargs["width"] = dims.width
+            if dims.depth is not None:
+                kwargs["depth"] = dims.depth
+            if dims.height is not None:
+                kwargs["height"] = dims.height
         if dims.thickness is not None:
             kwargs["thickness"] = dims.thickness
     elif family == "desk_organizer_tray":
