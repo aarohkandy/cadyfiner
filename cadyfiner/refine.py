@@ -154,6 +154,35 @@ def _nearest_number_mm(
     forward_text = text[keyword_index + keyword_len : keyword_index + keyword_len + 20]
     backward_text = text[max(0, keyword_index - 20) : keyword_index]
 
+    # Clip each side to the current clause: a comma or period reliably separates one
+    # dimension statement from an unrelated adjacent one in this domain's phrasing, but
+    # never appears inside a legitimate "<number> <unit> <keyword>" phrase itself. Found
+    # live: "100mm outer diameter, 8mm overall thickness" — forward search from "diameter"
+    # used to reach across the comma into the unrelated "8mm" (2 chars away) before ever
+    # weighing the correct, backward "100" (7 chars away, but through the legitimate
+    # phrase "outer diameter") — raw character distance alone doesn't know a clause
+    # boundary was crossed. Clipping removes the cross-clause candidate entirely rather
+    # than just making it "further," since it's never the right match regardless of
+    # exact distance.
+    # Require whitespace (or end-of-window) right after the comma/period: a genuine clause
+    # separator is always followed by a space in real prose ("diameter, 8mm"), while a
+    # European decimal comma/point never is ("80,5mm", "3.5mm") — this distinguishes the
+    # two without needing to parse numbers twice. A standalone " x " (word-boundary, not
+    # inside another word) is included too: verified against every "x"-joined dimension
+    # pair in this project's seed bank (pen_holder's "65mm outer diameter x 95mm tall",
+    # wall_planter's "100mm tall x 90mm wide x 4mm thick") — every one already carries its
+    # OWN keyword on each side, so "x" is functioning as a conjunction between two already-
+    # tagged phrases here, the same job a comma does elsewhere, not a bare positional
+    # "80x60x30" chain (which doesn't appear anywhere in this project's real prompts and
+    # which Stage 1 has no mechanism to parse either way).
+    _clause_break = re.compile(r"[,.](?=\s|$)|\bx\b")
+    forward_stop = _clause_break.search(forward_text)
+    if forward_stop:
+        forward_text = forward_text[: forward_stop.start()]
+    backward_stops = list(_clause_break.finditer(backward_text))
+    if backward_stops:
+        backward_text = backward_text[backward_stops[-1].end() :]
+
     forward_match = _NUMBER_NEAR_UNIT.search(forward_text)
     backward_matches = list(_NUMBER_NEAR_UNIT.finditer(backward_text))
     backward_match = backward_matches[-1] if backward_matches else None  # closest = last one before the keyword

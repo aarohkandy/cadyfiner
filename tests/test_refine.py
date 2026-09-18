@@ -78,6 +78,36 @@ class TestDimensionExtraction:
         r = extract("The plate is 80,5mm wide and 3mm thick.")
         assert abs(r.spec.stated_dimensions()["width"] - 80.5) < 0.01
 
+    def test_comma_separated_adjacent_dimension_not_misread(self):
+        """Regression (found live building the CAD-gen template fast path, coaster_high):
+        '100mm outer diameter, 8mm overall thickness' -- forward search from 'diameter'
+        used to reach across the comma into the unrelated '8mm' (2 chars away) before ever
+        weighing the correct, backward '100mm' (7 chars away, but through the legitimate
+        phrase 'outer diameter') -- raw character distance alone didn't know a clause
+        boundary was crossed."""
+        r = extract("100mm outer diameter, 8mm overall thickness.")
+        dims = r.spec.stated_dimensions()
+        assert dims.get("diameter") == 100.0
+        assert dims.get("thickness") == 8.0
+
+    def test_x_separated_keyword_tagged_dimensions_not_misread(self):
+        """Regression (found live, pen_holder_high): '65mm outer diameter x 95mm tall' --
+        same cross-clause confusion as the comma case above, but with a standalone 'x'
+        joining two already keyword-tagged phrases instead of a comma. Every 'x'-joined
+        dimension pair in this project's real seed bank carries its own keyword on each
+        side (never a bare '80x60x30' positional chain), so treating 'x' as a clause break
+        here doesn't risk misreading a legitimate positional chain that doesn't exist."""
+        r = extract("65 mm outer diameter x 95 mm tall, with 3 mm walls.")
+        dims = r.spec.stated_dimensions()
+        assert dims.get("diameter") == 65.0
+        assert dims.get("height") == 95.0
+
+    def test_decimal_comma_still_not_treated_as_clause_break(self):
+        """The clause-break fix above must not regress the European-decimal-comma case --
+        '80,5mm' has no space after its comma, unlike a real clause separator."""
+        r = extract("The plate is 80,5mm wide and 3mm thick.")
+        assert abs(r.spec.stated_dimensions()["width"] - 80.5) < 0.01
+
     def test_outer_diameter_still_correct_after_all_fixes(self):
         """Full regression check of the audited wall_planter level-7 ladder text."""
         text = (

@@ -141,25 +141,59 @@ All 7 templates independently pass their own family's ground truth. Run against 
 seed-bank items (all 3 specificity tiers × 7 families) through the real Stage-1-extraction →
 family-detection → template-dispatch → sandboxed-execution → scoring pipeline:
 
-**18/21 (85.7%) full pass — up from 2/13 (~15%) for the best LLM-only configuration tested
-in this document, and confirmed via the project's real statistical harness
-(`cadyfiner/harness.py`), not just the standalone check above.**
+**18/21 (85.7%) full pass on the first pass — up from 2/13 (~15%) for the best LLM-only
+configuration tested in this document, and confirmed via the project's real statistical
+harness (`cadyfiner/harness.py`), not just the standalone check above.**
 
-The 3 remaining failures are exactly the Stage-1 proximity-matching bug described in
-`README.md`'s limitations section (a densely-worded prompt with two nearby dimension
-mentions confuses the "closest number wins" heuristic) — a real, characterized, existing
-limitation, not a gap in the templates themselves; each template independently passes when
-given its own correct defaults.
+The 3 remaining failures all traced to one root cause: Stage 1's `_nearest_number_mm`
+(`refine.py`) picks whichever number is textually *closest* to a dimension keyword, with no
+concept of a clause boundary — on a densely-worded prompt with two dimension mentions close
+together ("100mm outer diameter, **8mm** overall thickness"), the wrong, cross-clause number
+can be literally fewer characters away than the correct one on the other side of a comma or
+"outer"/"tall"-style adjective phrase.
+
+### 4.1 Follow-up fix: 2 of 3 remaining failures resolved
+
+Fixed by clipping the forward/backward search windows at the first comma, period, or
+standalone `x` that's followed by whitespace (distinguishing a real clause separator from a
+European decimal comma like `"80,5mm"`, which never has a space after it) — see
+`_nearest_number_mm`'s updated docstring in `refine.py` for the exact logic, and
+`tests/test_refine.py`'s `test_comma_separated_adjacent_dimension_not_misread` /
+`test_x_separated_keyword_tagged_dimensions_not_misread` /
+`test_decimal_comma_still_not_treated_as_clause_break` for the regression coverage (the third
+test specifically guards against the fix breaking the case it could plausibly break). The `x`
+side of the fix was checked against every real `"x"`-joined dimension pair in this project's
+seed bank first — each one already carries its own keyword on both sides (`"65mm outer
+diameter x 95mm tall"`, `"100mm tall x 90mm wide x 4mm thick"`), never a bare positional
+`"80x60x30"` chain, so treating a standalone `x` as a clause break doesn't risk misreading a
+positional pattern that doesn't actually appear anywhere in real usage.
+
+**Result: 20/21 (95.2%)**, confirmed again through the real harness after the fix. All
+pre-existing tests (112 total across the project) still pass — nothing regressed.
+
+The 1 remaining failure (`enclosure_high`) is a different kind of gap: its prompt states
+dimensions as an unlabeled positional triple ("External dimensions 80mm by 60mm by 30mm")
+with no per-axis keyword anywhere near it, so Stage 1's keyword-proximity search has no
+candidate for "height" from that phrase at all — it instead latches onto the only "tall"
+mention in the whole prompt (an unrelated standoff's "25mm tall"). This is a missing
+*capability* (positional-triple parsing), not a proximity-matching bug, and deliberately
+not patched here: assuming a fixed axis order ("by" always means width-by-depth-by-height)
+would be a real, separately-scoped design decision that could silently misread a different
+prompt using the same phrasing for a different axis order (e.g. a cylinder's "80mm by
+30mm" meaning diameter-by-height) — worth doing carefully, not as a quick regex addition
+riding on this fix's momentum.
 
 ## 5. What this means for the paired raw-vs-refined harness statistic
 
 For a templated family, code generation depends only on Stage 1's structured extraction, not
 on prompt *text* — so `raw_pass == refined_pass` for that seed **by construction**: refining
 the prompt's wording cannot move a deterministic, already-reliable code path. Running the
-full harness across all 21 seeds confirms exactly this: 0 refined wins, 0 raw wins, 18 ties,
-3 excluded (Stage 2 fallback) — `summarize()`'s correct verdict is "INCONCLUSIVE: no decisive
-pairs," which is the honest, expected output of that statistic in this new regime, not a
-new negative result. **The overall pass-rate lift (2/13 → 18/21) is where the real,
+full harness across all 21 seeds confirms exactly this, both before and after the §4.1 Stage 1
+fix — 0 refined wins, 0 raw wins, every pair a tie (Stage 2's fallback-exclusion count varies
+run to run with its own LLM-call stochasticity, unrelated to this fix — 3 excluded on the
+first run, 5 on the confirming re-run) — `summarize()`'s correct verdict is "INCONCLUSIVE: no
+decisive pairs," which is the honest, expected output of that statistic in this new regime,
+not a new negative result. **The overall pass-rate lift (2/13 → 20/21) is where the real,
 measured benefit shows up — the paired refinement-effect statistic isn't the right lens for
 a templated family anymore, and this document says so rather than reporting a technically-
 true-but-misleading "0% win rate."**

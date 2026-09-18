@@ -13,14 +13,18 @@ from cadyfiner.spec import DesignBrief
 
 FAMILIES_DIR = Path(__file__).resolve().parents[1] / "prompts" / "seed_bank" / "families"
 
-# Known, documented limitation: Stage 1's proximity-based regex extraction picks the
-# textually-closest number to a dimension keyword, which breaks on a few "high" (densely
-# worded) seeds where an unrelated adjacent dimension mention is textually closer than the
-# semantically-correct one (e.g. "100mm outer diameter, 8mm overall thickness" -- forward
-# search from "diameter" reaches the unrelated "8mm" before the correct "100mm" registers as
-# closer). See docs/TRAINED_OPTIMIZERS.md and templates.py's module docstring. Not a template
-# defect -- the template's own defaults (verified independently below) are exactly correct.
-_KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS = {"coaster_high", "enclosure_high", "pen_holder_high"}
+# Known, documented limitation: enclosure_high states its dimensions as a positional triple
+# with no per-axis keyword at all ("External dimensions 80mm by 60mm by 30mm") -- Stage 1
+# has no mechanism to parse an unlabeled "A by B by C" pattern, so its keyword-proximity
+# search for "height" latches onto the only "tall" mention in the whole text (an unrelated
+# standoff's "25mm tall"). This is a missing CAPABILITY, not the proximity-matching bug two
+# sibling seeds (coaster_high, pen_holder_high) used to hit and are now fixed for (see
+# _nearest_number_mm's clause-break logic in refine.py) -- adding safe positional-triple
+# parsing is real, separately-scoped follow-up work, not a quick regex patch, since a wrong
+# assumed axis order would silently corrupt a DIFFERENT prompt's correct extraction. See
+# docs/CADGEN_RELIABILITY.md. Not a template defect -- the template's own defaults (verified
+# independently below) are exactly correct.
+_KNOWN_STAGE1_EXTRACTION_MISATTRIBUTIONS = {"enclosure_high"}
 
 
 class TestTemplatesPassTheirOwnGroundTruth:

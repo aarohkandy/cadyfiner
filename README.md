@@ -91,12 +91,14 @@ unverified until run once for real).
    CadQuery templates for this project's known object families, with the
    LLM's role reduced to what it's already reliable at (extracting
    dimensions/features from a prompt) and never touching CadQuery syntax
-   for a covered family. Validated result: **18/21 seed-bank items now
-   pass (85.7%), up from 2/13 (~15%) for the best LLM-only configuration
+   for a covered family. Validated result: **20/21 seed-bank items now
+   pass (95.2%), up from 2/13 (~15%) for the best LLM-only configuration
    tested** — see `cadyfiner/oracle/templates.py` and the dedicated doc for
    the full methodology, honest limitations, and how this changes what the
    paired raw-vs-refined statistic can and can't measure for a templated
-   family.
+   family. The last remaining failure is a real, characterized Stage 1
+   limitation (no mechanism to parse an unlabeled "80mm by 60mm by 30mm"
+   positional triple), not a template defect.
 
 ## Architecture, and why each piece looks the way it does
 
@@ -185,13 +187,19 @@ rate, 95% CI, exact sign-test p, and per-family/per-role breakdowns.
 - **Stage 1 extraction is regex-based, not real NLP.** It handles the
   phrasing patterns in this project's own seed bank well (tested); it will
   get confused by phrasing it's never seen. Stage 2's LLM call is the
-  intended backstop, not Stage 1 being perfect. Found live: on a densely
-  worded "high-specificity" prompt with two dimension mentions close
-  together (e.g. "100mm outer diameter, 8mm overall thickness"), the
-  proximity-based number-matching can grab the wrong one — the direct
-  cause of 3 of the 21 seed-bank items not passing under the template fast
-  path (see evidence #5 and `docs/CADGEN_RELIABILITY.md`); characterized
-  and documented, not yet fixed.
+  intended backstop, not Stage 1 being perfect. Found and fixed live: on a
+  densely worded "high-specificity" prompt with two dimension mentions
+  close together (e.g. "100mm outer diameter, 8mm overall thickness", or
+  "65mm outer diameter x 95mm tall"), proximity-based number-matching used
+  to grab the wrong one, crossing a clause boundary it didn't know was
+  there — fixed by clipping the search window at a comma/period/standalone
+  "x" (see `_nearest_number_mm` in `refine.py`). One remaining, different
+  case is still open: a prompt stating dimensions as an unlabeled
+  positional triple ("External dimensions 80mm by 60mm by 30mm", no
+  per-axis keyword at all) has no extraction mechanism yet — a missing
+  capability, not a proximity bug, and a wrong assumed axis order would
+  risk corrupting a different prompt's correct extraction if patched
+  hastily (see evidence #5 and `docs/CADGEN_RELIABILITY.md`).
 - **The CAD-code-generation template fast path only covers 7 known
   families.** Anything else falls back to the free-form LLM path this
   whole investigation found unreliable — say so if you hit an

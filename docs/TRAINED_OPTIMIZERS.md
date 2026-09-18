@@ -342,12 +342,55 @@ turned out not to be a bigger model at all — see
 prompt-side fixes and three different model sizes (8B–25.8B) were all tried and none closed
 the gap; what actually worked was replacing free-form LLM code generation with verified
 templates for this project's known object families, taking the overall seed-bank pass rate
-from 2/13 to 18/21. That does resolve the generator-reliability bottleneck this section
-identified — but it also means the paired refined-vs-raw comparison stops being the right
-lens for a templated family (code generation no longer depends on prompt text at all once
-templated — see that document's §5), so it isn't a like-for-like re-run of the table above.
-Whether the *trained* Stage-2 model specifically beats the general-purpose one remains
-untested by anything in this document.
+from 2/13 to 20/21 (see that document's §4, updated after a Stage-1 extraction fix). That
+does resolve the generator-reliability bottleneck this section identified — but it also
+means the paired refined-vs-raw comparison stops being the right lens for a templated family
+(code generation no longer depends on prompt text at all once templated — see that
+document's §5), so it isn't a like-for-like re-run of the table above. Whether the *trained*
+Stage-2 model specifically beats the general-purpose one remains untested by anything in
+this document.
+
+## 5.1 Follow-up on Model 2: fixing the ground truth doesn't automatically fix the model
+
+Section 5's original comparison (46.0% vs 48.0% general-purpose, both below the 52%
+trivial-majority baseline) turned out to be measuring something broken: `_propose_mutation`
+builds a new `Candidate` label whenever `object_class`/`add`/`remove` are non-null, even when
+the underlying `depth_policy` dict didn't actually change — meaning both models' "fixable"
+calls were being graded by a proxy (`label != label`) that doesn't track whether an edit had
+any real effect. Checked directly against `DEPTH_POLICY`'s actual current contents: **19 of
+24 "policy_fixable=true" training/eval labels propose adding a category already present for
+that object class** — a guaranteed no-op under the real mutation mechanics. Corrected ground
+truth (does the labeled action actually change the policy?): only **5 of 50 scenarios** have
+any real effect at all, every one a `decorative` object with a diagnostic pointing at a
+structural/multi-part problem (disconnected solids, non-manifold junctions, or an axis-
+confused measurement) that `topology`/`feature_placement` guidance could plausibly fix —
+`mechanical_functional`'s depth policy already contains every category, so no `add` can ever
+do anything for that class today.
+
+Rewrote `_propose_mutation`'s prompt to teach this mechanism explicitly (check whether the
+category is already present before proposing it) and re-tested against the corrected ground
+truth: **90.0% agreement (45/50)** — but `tp=0, fn=5`: every correct answer came from
+correctly defaulting to "no effect," none from actually catching one of the 5 real positives.
+The fix killed a real, harmful bias (proposing edits indiscriminately), but a 10%-prevalence
+positive class with only 5 known examples is a genuinely different, harder problem that
+prompt-framing alone doesn't solve.
+
+**One more thing tried, reported honestly rather than silently dropped**: a hand-written
+structural rule (decorative object, missing topology/feature_placement, diagnostic mentions
+a mesh-connectivity signal like `solid_count`/`manifold_check`/`disconnected`) reaches 92.0%
+accuracy (46/50, `tp=2, fp=1, fn=3`) — a genuine, if modest, improvement over the 90%
+constant-classifier baseline. But the 3 remaining misses each need a *different* kind of
+reasoning the rule doesn't capture: one is a hole-count mismatch, one a cutout-count
+mismatch, one an axis-confusion pattern (a measured diameter exactly matching the *height*
+value, not the stated diameter — the two got cross-mapped). Each of these needed a distinct,
+specific insight found only by reading that scenario's own labeling `reasoning` field by
+hand. Tuning a heuristic further against 5 known positive examples risks overfitting to
+those 5 specifically rather than learning something that generalizes — this is exactly the
+"n too small to conclude anything" caveat this project's own harness methodology exists to
+catch. **The honest conclusion: this residual 10%-prevalence discrimination problem needs
+more labeled data or a genuinely smarter judge, not more heuristic engineering on the
+existing 50 examples.** Left undeployed (not wired into `optimize.py`) for exactly that
+reason — documented here as a real, bounded finding rather than shipped as an unproven fix.
 
 ## 6. Known limitations (stated up front, not discovered later)
 
