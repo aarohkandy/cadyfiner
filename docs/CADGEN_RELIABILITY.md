@@ -208,6 +208,44 @@ families, passes through the real Stage-1-extraction → family-detection → te
 sandboxed-execution → scoring pipeline (`scripts/verify_templates_full.py`), confirmed again
 via the real statistical harness (`raw=21/21 refined=21/21`, §5 below).
 
+### 4.3 Stress-testing beyond the seed bank's own sizes found 3 more real bugs
+
+21/21 means every template is correct for the *one* size/configuration its own seed-bank
+family actually tests — it says nothing about whether the template generalizes to a real
+request at a different size. Tested that directly: ran the real `cadyfiner generate` CLI
+end-to-end (not just the standalone verification scripts) with dimensions and counts the
+seed bank never exercises, and found three more concrete bugs, all the same underlying class
+— a template parameter tuned and verified against exactly one scale, silently wrong or
+outright broken at another:
+
+- **`gear_code`**: a fixed 3mm `tooth_radius` was only ever checked against the seed bank's
+  own `tooth_count=16`. Asking for a 20-tooth gear at the same `base_radius` produced a
+  single, OCC-*valid* solid — but adjacent teeth had merged enough to corrupt the radial
+  profile, and the FFT tooth-count checker read back 36, not 20. `mesh_validity` genuinely
+  cannot see this class of bug (the solid is real and single); only actually measuring the
+  requested feature catches it. Fixed with two thresholds swept empirically against the real
+  boundary (40% margin decides *whether* to cap, chosen to exactly match what's already
+  implicit in the verified default so that default gets zero behavior change; 32% is what it
+  caps *to*, a real margin below the observed cliff at 40% exactly) — verified working for
+  8–30 teeth, the whole range a print-scale gear at this size would realistically use.
+- **`enclosure_code`**: a small enclosure (30×25×15mm) with the unscaled 25mm default
+  `standoff_height` broke the union outright — a standoff taller than the box it sits inside
+  pokes out above the box's own top face. `enclosure_high`'s own 30mm height comfortably
+  exceeds the 25mm default, so nothing in the 21/21 result would ever have caught it. Fixed
+  by clamping `standoff_height` to the enclosure's own `height`.
+- **`bracket_code`**: the documented `(width, width)` bbox guarantee only actually held while
+  `flange_width <= width`. The verified default (60, 40) satisfies this; `width=30` with the
+  same 40mm flange measured a *40×40* bbox, not the requested 30×30 — silently wrong, not
+  crashed, exactly the kind of bug an `n_solids`/`is_valid`-only check (which is what this
+  document's own earlier stress-testing pass used first) doesn't catch. Fixed by capping
+  `flange_width` to `width`, and `hole_inset` proportionally — the hole-count part of this
+  fix is an honestly partial one: exact for `width >= 60`, still under-detecting 1 of 4 holes
+  below that (an improvement over unscaled behavior, not a fully closed gap).
+
+None of these three affect the 21/21 seed-bank result — every seed-bank prompt uses each
+family's one verified size. They matter for the actual point of building verified templates
+at all: a real user's request won't always match the seed bank's exact numbers.
+
 ## 5. What this means for the paired raw-vs-refined harness statistic
 
 For a templated family, code generation depends only on Stage 1's structured extraction, not
@@ -237,6 +275,11 @@ technically-true-but-misleading "0% win rate."**
   correct for a wrong number in a family without one. All 21 known seeds pass today; a new,
   differently-phrased prompt could still surface a fourth extraction bug this document hasn't
   seen yet.
+- **Two of §4.3's three stress-testing fixes are exact and general (gear's 8–30 tooth range,
+  enclosure's standoff-height clamp); the third (bracket's hole placement) is only a partial
+  fix** — correct for `width >= 60`, still under-detecting one hole below that. A gear with
+  36+ teeth at the default 20mm base radius is also a known, unfixed boundary (the teeth
+  become smaller than this project's own FDM-printability scope would consider real anyway).
 - **This doesn't validate whether refining the prompt TEXT helps** for a templated family —
   see §5. It validates something different and arguably more useful for these families:
   reliable geometric correctness, independent of prompt wording quality.
