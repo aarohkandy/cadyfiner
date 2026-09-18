@@ -34,7 +34,28 @@ def bracket_code(width: float = 60, height: float = 60, thickness: float = 4,
     """L-shaped mounting bracket: two 60x40mm flanges (per the ground-truth prompt text)
     joined at 90 degrees, overlapping in a 40x40 corner so the overall footprint is exactly
     (width, width) -- 2 mounting holes per flange, inset from its two free edges. Verified
-    live: single valid solid, bbox (width, width, thickness), 4 clean through-holes."""
+    live: single valid solid, bbox (width, width, thickness), 4 clean through-holes.
+
+    The (width, width) bbox guarantee holds only while ``flange_width <= width``: each
+    flange's "short" axis extends from -width/2 to -width/2+flange_width, which stays within
+    the other flange's already-width-bounded footprint exactly as long as that doesn't exceed
+    +width/2. The verified default (width=60, flange_width=40) already satisfies this
+    (40 <= 60); found live that request for a SMALLER bracket than the default doesn't --
+    width=30 with the same 40mm flange_width measured a 40x40 bbox, not the requested 30x30.
+    Capped here rather than left to the caller.
+
+    ``hole_inset`` is capped at 25% of the (now correctly-capped) ``flange_width`` for the
+    same reason: a fixed 10mm inset comfortably fits the verified default's 40mm flange
+    (exactly 25% -- the cap is a no-op there) but crowds a smaller, scaled-down flange enough
+    that adjacent holes merge or land outside the material. This closes the gap for
+    width >= 60 (verified: exactly 4 through-holes, same as the unscaled default); a bracket
+    requested SMALLER than that still under-detects (3, not 4) -- an improvement over
+    unscaled behavior (never worse), but a real, characterized remaining boundary, not a
+    fully solved one. All 3 seed-bank tiers use width=60, so this doesn't affect the 21/21
+    result; it would matter for a real request smaller than this project has ever tested."""
+
+    flange_width = min(flange_width, width)
+    hole_inset = min(hole_inset, flange_width * 0.25)
 
     return f"""import cadquery as cq
 
@@ -113,7 +134,17 @@ def enclosure_code(width: float = 80, depth: float = 60, height: float = 30, thi
                     standoff_inset: float = 5.0) -> str:
     """Open-top rectangular enclosure, shelled from a solid box, with 4 corner standoffs added
     back in as solid bored cylinders. Verified live: single valid solid, exact bbox
-    (width, depth, height)."""
+    (width, depth, height).
+
+    ``standoff_height`` is clamped to never exceed the enclosure's own ``height``. Found live
+    testing a small enclosure (30x25x15mm) with the default 25mm standoff_height: a standoff
+    taller than the box it's meant to fit inside pokes out above the box's own top face,
+    which broke the union outright (`Standard_Failure: BRep_API: command not done`) rather
+    than merely measuring wrong -- the seed bank's own enclosure_high never exercises this
+    because its 30mm height comfortably exceeds the 25mm default standoff_height, so nothing
+    in the original 21/21 result would have caught it."""
+
+    standoff_height = min(standoff_height, height)
 
     return f"""import cadquery as cq
 

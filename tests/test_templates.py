@@ -61,6 +61,37 @@ class TestTemplatesPassTheirOwnGroundTruth:
         mesh = trimesh.load(result.stl_path)
         assert _estimate_tooth_count(mesh) == tooth_count
 
+    def test_enclosure_generalizes_to_a_small_size(self, tmp_path):
+        """Real bug found live testing the CLI end-to-end beyond the seed bank's own
+        80x60x30mm enclosure: a small enclosure (30x25x15mm) with the default 25mm
+        standoff_height broke the union outright (Standard_Failure: BRep_API: command not
+        done), since a standoff taller than the box it's meant to sit inside pokes out above
+        the box's own top face. The seed bank's own enclosure_high (30mm height) never
+        exercises this because it comfortably exceeds the 25mm default. Fixed by clamping
+        standoff_height to the enclosure's own height in enclosure_code."""
+        from cadyfiner.oracle.templates import enclosure_code
+
+        code = enclosure_code(width=30, depth=25, height=15)
+        result = run_cadquery(code, tmp_path / "enclosure_small", timeout_s=30)
+        assert result.ok, f"{result.error_type}: {result.error_message}"
+        assert result.cq_n_solids == 1
+        assert result.cq_is_valid_brep
+
+    @pytest.mark.parametrize("width", [20, 30, 40, 60, 100])
+    def test_bracket_bbox_matches_requested_width_at_any_size(self, width, tmp_path):
+        """Real bug found live: bracket_code's (width, width) bbox guarantee only actually
+        held while flange_width <= width. The verified default (width=60, flange_width=40)
+        satisfies this, but a SMALLER requested bracket didn't: width=30 measured a 40x40
+        bbox (from the unscaled 40mm flange_width), not the requested 30x30. Fixed by
+        capping flange_width (and, proportionally, hole_inset) to the requested width."""
+        from cadyfiner.oracle.templates import bracket_code
+
+        code = bracket_code(width=width)
+        result = run_cadquery(code, tmp_path / f"bracket_{width}", timeout_s=30)
+        assert result.ok
+        assert result.cq_bbox["x"] == width
+        assert result.cq_bbox["y"] == width
+
 
 class TestFamilyDetection:
     @pytest.mark.parametrize(
