@@ -25,6 +25,7 @@ guarantees apply even though this code is trusted.
 
 from __future__ import annotations
 
+import math
 import re
 
 
@@ -184,7 +185,29 @@ def gear_code(base_radius: float = 20, tooth_count: int = 16, tooth_radius: floa
               depth: float = 8, bore_diameter: float = 12.0) -> str:
     """Spur gear approximation: a base cylinder with tooth_count small cylindrical bumps
     unioned around its circumference, plus a center bore. Verified live: single valid solid;
-    overall diameter and tooth count tuned to match ground truth (diameter=46, 16 teeth)."""
+    overall diameter and tooth count tuned to match ground truth (diameter=46, 16 teeth).
+
+    ``tooth_radius`` is scaled down automatically when a requested ``tooth_count`` would
+    otherwise pack adjacent teeth closer than their own diameter apart. Found live: with the
+    default 3mm tooth_radius and 20mm base_radius, 16 teeth (this template's own verified
+    default) sit right at a 40% safety margin (7.85mm center-to-center spacing vs 6mm tooth
+    diameter) -- but a real user asking for a 20-tooth gear at the same base_radius (6.28mm
+    spacing) got adjacent teeth merging enough to corrupt the profile: the FFT-based
+    tooth-count checker read back 36 teeth, not 20, EVEN THOUGH the resulting solid was still
+    single and OCC-valid (this is a profile-shape problem the mesh_validity check can't see).
+
+    Empirically swept tooth_radius as a fraction of available spacing at tooth_count=20: 40%
+    exactly broke (36 estimated); every value from 25% to 38% read back the correct 20. So
+    capping uses two thresholds, not one: whether to cap at all is decided against 40% (kept
+    identical to the value already implicit in the verified tooth_count=16 default, so that
+    default gets zero behavior change -- 0.4x its own spacing is 3.14mm, comfortably above its
+    3mm tooth_radius, so the cap never activates for it); how far to cap TO, once capping is
+    needed at all, uses the empirically safer 32% -- a real margin below the observed cliff,
+    not a value sitting right on it."""
+
+    spacing = 2 * math.pi * base_radius / tooth_count
+    if tooth_radius > spacing * 0.4:
+        tooth_radius = spacing * 0.32
 
     return f"""import cadquery as cq
 import math

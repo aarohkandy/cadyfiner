@@ -38,6 +38,29 @@ class TestTemplatesPassTheirOwnGroundTruth:
         leg1 = evaluate_leg1(result, gt)
         assert leg1.overall_pass, leg1.feedback_text()
 
+    @pytest.mark.parametrize("tooth_count", [8, 12, 16, 18, 20, 22, 24, 28, 30])
+    def test_gear_generalizes_to_other_tooth_counts(self, tooth_count, tmp_path):
+        """Real bug found live testing the CLI end-to-end beyond the seed bank's own
+        canonical tooth_count=16: a fixed tooth_radius packs adjacent teeth too close
+        together at higher counts, merging them enough to corrupt the profile -- the
+        resulting solid stays single and OCC-valid (mesh_validity can't see this), but the
+        FFT-based tooth-count checker read back 36 teeth for a 20-tooth request. Verified
+        working range is 8-30 teeth at this template's default 20mm base_radius; beyond
+        that the teeth become smaller than is realistically FDM-printable at this scale
+        anyway (this project's whole scope), so it's an accepted, documented boundary
+        rather than chased further -- see gear_code's docstring."""
+        from cadyfiner.oracle.checks import _estimate_tooth_count
+        import trimesh
+
+        from cadyfiner.oracle.templates import gear_code
+
+        code = gear_code(tooth_count=tooth_count)
+        result = run_cadquery(code, tmp_path / f"gear_{tooth_count}", timeout_s=30)
+        assert result.ok
+        assert result.cq_n_solids == 1
+        mesh = trimesh.load(result.stl_path)
+        assert _estimate_tooth_count(mesh) == tooth_count
+
 
 class TestFamilyDetection:
     @pytest.mark.parametrize(
